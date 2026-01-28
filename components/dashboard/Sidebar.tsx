@@ -21,7 +21,7 @@ import toast from "react-hot-toast";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Tableau de bord", href: "/dashboard" },
-  { icon: Users, label: "Élèves", href: "/dashboard/students" },
+  { icon: Users, label: "Utilisateurs", href: "/dashboard/users" },
   { icon: GraduationCap, label: "Enseignants", href: "/dashboard/teachers" },
   { icon: BookOpen, label: "Classes", href: "/dashboard/classes" },
   { icon: ClipboardCheck, label: "Notes", href: "/dashboard/grades" },

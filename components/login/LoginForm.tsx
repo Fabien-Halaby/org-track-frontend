@@ -13,7 +13,7 @@ export default function LoginForm() {
   const { setAuthData } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -63,6 +63,7 @@ export default function LoginForm() {
         });
       }
     } catch (err) {
+      console.error("Login error: ", err);
       toast.error("Erreur de connexion au serveur", { id: loadingToast });
     } finally {
       setLoading(false);
@@ -143,7 +144,7 @@ export default function LoginForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 rounded-xl font-bold hover:from-blue-500 hover:to-purple-500 transition-all shadow-lg shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full bg-linear-to-r from-blue-600 to-purple-600 text-white py-4 rounded-xl font-bold hover:from-blue-500 hover:to-purple-500 transition-all shadow-lg shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {loading ? (
             <>
@@ -160,7 +161,7 @@ export default function LoginForm() {
       </form>
 
       <div className="mt-8 text-center text-gray-400 text-sm">
-        Vous n'avez pas encore de compte ?{" "}
+        {"Vous n'avez pas encore de compte ?"}{" "}
         <Link href="/register" className="text-blue-400 hover:text-blue-300 font-medium">
           Créer un compte
         </Link>
