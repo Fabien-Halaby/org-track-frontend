@@ -4,6 +4,7 @@ import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from "ax
 import { UsersResponse } from "./types";
 import { Class, CreateClassData, UpdateClassData } from "./types";
 import { Subject, CreateSubjectData, UpdateSubjectData } from "./types";
+import { DashboardData } from "./types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
 
@@ -207,6 +208,38 @@ class ApiClient {
       return {
         success: true,
         message: "Déconnexion locale",
+      };
+    }
+  }
+
+
+  // ========== ADMIN DASHBOARD ==========
+  async getDashboard(): Promise<ApiResponse<DashboardData>> {
+    try {
+      const response = await this.client.get<BackendResponse<DashboardData>>("/admin/dashboard");
+      
+      if (response.data.success) {
+        return {
+          success: true,
+          data: response.data.data,
+          message: response.data.message,
+        };
+      }
+
+      return {
+        success: false,
+        error: response.data.message || "Erreur",
+      };
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        return {
+          success: false,
+          error: error.response?.data?.message || error.message,
+        };
+      }
+      return {
+        success: false,
+        error: "Erreur de connexion",
       };
     }
   }

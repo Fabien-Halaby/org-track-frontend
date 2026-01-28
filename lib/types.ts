@@ -55,3 +55,21 @@ export interface CreateSubjectData {
 }
 
 export type UpdateSubjectData = CreateSubjectData;
+
+//! DASHBOARD
+export interface DashboardStats {
+  total_users: number;
+  total_teachers: number;
+  total_students: number;
+  total_admins: number;
+  pending_users: number;
+  approved_users: number;
+  rejected_users: number;
+  total_subjects: number;
+  total_classes: number;
+}
+
+export interface DashboardData {
+  stats: DashboardStats;
+  pending_users: AdminUser[];
+}
