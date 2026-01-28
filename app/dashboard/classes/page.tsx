@@ -15,10 +15,6 @@ export default function ClassesPage() {
   const [editingClass, setEditingClass] = useState<Class | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    fetchClasses();
-  }, []);
-
   const fetchClasses = async () => {
     setLoading(true);
     const response = await api.getAllClasses();
@@ -113,6 +109,10 @@ export default function ClassesPage() {
     );
   });
 
+  useEffect(() => {
+    fetchClasses();
+  }, []);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -139,7 +139,7 @@ export default function ClassesPage() {
         </div>
         <button
           onClick={openCreateModal}
-          className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:from-blue-500 hover:to-purple-500 transition-all flex items-center gap-2"
+          className="px-4 py-2 bg-linear-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:from-blue-500 hover:to-purple-500 transition-all flex items-center gap-2"
         >
           <Plus size={20} />
           Créer une classe

@@ -1,4 +1,4 @@
-//! Admin User Data
+//! USER
 export interface AdminUser {
   id: number;
   email: string;
@@ -16,7 +16,7 @@ export interface UsersResponse {
 }
 
 
-//! Classes Data
+//! CLASS
 export interface Class {
   id: number;
   name: string;
@@ -37,3 +37,21 @@ export interface CreateClassData {
 }
 
 export type UpdateClassData = CreateClassData
+
+
+//! SUBJECT
+export interface Subject {
+  id: number;
+  name: string;
+  code: string;
+  description?: string;
+  school_id: number;
+}
+
+export interface CreateSubjectData {
+  name: string;
+  code: string;
+  description?: string;
+}
+
+export type UpdateSubjectData = CreateSubjectData;

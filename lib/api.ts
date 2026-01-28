@@ -3,6 +3,7 @@
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from "axios";
 import { UsersResponse } from "./types";
 import { Class, CreateClassData, UpdateClassData } from "./types";
+import { Subject, CreateSubjectData, UpdateSubjectData } from "./types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
 
@@ -447,6 +448,136 @@ class ApiClient {
     try {
       const response = await this.client.delete<BackendResponse<void>>(
         `/admin/classes/${classId}`
+      );
+      
+      if (response.data.success) {
+        return {
+          success: true,
+          message: response.data.message,
+        };
+      }
+
+      return {
+        success: false,
+        error: response.data.message || "Erreur",
+      };
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        return {
+          success: false,
+          error: error.response?.data?.message || error.message,
+        };
+      }
+      return {
+        success: false,
+        error: "Erreur de connexion",
+      };
+    }
+  }
+
+
+
+  //! ========== ADMIN SUBJECT MANAGEMENT ==========
+  async getAllSubjects(): Promise<ApiResponse<Subject[]>> {
+    try {
+      const response = await this.client.get<BackendResponse<Subject[]>>("/admin/subjects");
+      
+      if (response.data.success) {
+        return {
+          success: true,
+          data: response.data.data,
+          message: response.data.message,
+        };
+      }
+
+      return {
+        success: false,
+        error: response.data.message || "Erreur",
+      };
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        return {
+          success: false,
+          error: error.response?.data?.message || error.message,
+        };
+      }
+      return {
+        success: false,
+        error: "Erreur de connexion",
+      };
+    }
+  }
+
+  async createSubject(data: CreateSubjectData): Promise<ApiResponse<Subject>> {
+    try {
+      const response = await this.client.post<BackendResponse<Subject>>(
+        "/admin/subjects",
+        data
+      );
+      
+      if (response.data.success) {
+        return {
+          success: true,
+          data: response.data.data,
+          message: response.data.message,
+        };
+      }
+
+      return {
+        success: false,
+        error: response.data.message || "Erreur",
+      };
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        return {
+          success: false,
+          error: error.response?.data?.message || error.message,
+        };
+      }
+      return {
+        success: false,
+        error: "Erreur de connexion",
+      };
+    }
+  }
+
+  async updateSubject(subjectId: number, data: UpdateSubjectData): Promise<ApiResponse<Subject>> {
+    try {
+      const response = await this.client.put<BackendResponse<Subject>>(
+        `/admin/subjects/${subjectId}`,
+        data
+      );
+      
+      if (response.data.success) {
+        return {
+          success: true,
+          data: response.data.data,
+          message: response.data.message,
+        };
+      }
+
+      return {
+        success: false,
+        error: response.data.message || "Erreur",
+      };
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        return {
+          success: false,
+          error: error.response?.data?.message || error.message,
+        };
+      }
+      return {
+        success: false,
+        error: "Erreur de connexion",
+      };
+    }
+  }
+
+  async deleteSubject(subjectId: number): Promise<ApiResponse<void>> {
+    try {
+      const response = await this.client.delete<BackendResponse<void>>(
+        `/admin/subjects/${subjectId}`
       );
       
       if (response.data.success) {

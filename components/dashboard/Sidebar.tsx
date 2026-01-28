@@ -8,6 +8,7 @@ import {
   Users,
   GraduationCap,
   BookOpen,
+  BookMarked,
   ClipboardCheck,
   Calendar,
   Settings,
@@ -22,8 +23,9 @@ import toast from "react-hot-toast";
 const menuItems = [
   { icon: LayoutDashboard, label: "Tableau de bord", href: "/dashboard" },
   { icon: Users, label: "Utilisateurs", href: "/dashboard/users" },
-  { icon: GraduationCap, label: "Enseignants", href: "/dashboard/teachers" },
+  // { icon: GraduationCap, label: "Enseignants", href: "/dashboard/teachers" },
   { icon: BookOpen, label: "Classes", href: "/dashboard/classes" },
+  { icon: BookMarked, label: "Matières", href: "/dashboard/subjects" },
   { icon: ClipboardCheck, label: "Notes", href: "/dashboard/grades" },
   { icon: Calendar, label: "Présences", href: "/dashboard/attendance" },
   { icon: Settings, label: "Paramètres", href: "/dashboard/settings" },
