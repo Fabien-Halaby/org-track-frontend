@@ -1,5 +1,5 @@
 {
-  "name": "educ-net-admin",
+  "name": "portfolio",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,8 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@tanstack/react-query": "^5.90.20",
-    "axios": "^1.13.2",
+    "@hookform/resolvers": "^5.2.2",
+    "@tanstack/react-query": "^5.90.21",
+    "axios": "^1.13.5",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "js-cookie": "^3.0.5",
@@ -18,10 +19,13 @@
     "next": "16.1.4",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "react-hook-form": "^7.71.1",
     "react-hot-toast": "^2.6.0",
     "react-icons": "^5.5.0",
     "recharts": "^3.7.0",
-    "tailwind-merge": "^3.4.0"
+    "tailwind-merge": "^3.4.0",
+    "zod": "^4.3.6",
+    "zustand": "^5.0.11"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

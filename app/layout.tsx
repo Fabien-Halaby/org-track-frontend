@@ -1,15 +1,13 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { Toaster } from "react-hot-toast";
-import { AuthProvider } from "@/contexts/AuthContext";
 import "./globals.css";
+import { Providers } from "@/lib/providers";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "EducNet",
-  description: "Plateforme SaaS complète pour gérer votre établissement scolaire à Madagascar. Gestion des élèves, enseignants, notes, absences et communication.",
-  keywords: "école, gestion scolaire, Madagascar, SaaS, éducation, plateforme scolaire",
+  title: "ImpactTrack - Dashboard de suivi d'impact",
+  description: "Gestion de projets et indicateurs pour associations et ONG",
 };
 
 export default function RootLayout({
@@ -20,32 +18,7 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body className={inter.className}>
-        <AuthProvider>
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              duration: 4000,
-              style: {
-                background: "#1f2937",
-                color: "#fff",
-                border: "1px solid #374151",
-              },
-              success: {
-                iconTheme: {
-                  primary: "#10b981",
-                  secondary: "#fff",
-                },
-              },
-              error: {
-                iconTheme: {
-                  primary: "#ef4444",
-                  secondary: "#fff",
-                },
-              },
-            }}
-          />
-          {children}
-        </AuthProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

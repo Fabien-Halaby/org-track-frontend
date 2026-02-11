@@ -1,1 +1,35 @@
 @import "tailwindcss";
+
+@theme {
+  --color-primary: #2563eb;
+  --color-primary-dark: #1d4ed8;
+  --color-secondary: #1f2937;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply bg-gray-50 text-gray-900 antialiased;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary hover:bg-primary-dark text-white font-semibold py-3 px-6 rounded-lg transition-colors inline-flex items-center justify-center gap-2;
+  }
+  
+  .btn-secondary {
+    @apply bg-secondary hover:bg-black text-white font-semibold py-3 px-6 rounded-lg transition-colors inline-flex items-center justify-center;
+  }
+  
+  .section-padding {
+    @apply py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto;
+  }
+  
+  .card {
+    @apply bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow overflow-hidden;
+  }
+}
