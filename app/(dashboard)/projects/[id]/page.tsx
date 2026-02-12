@@ -1,19 +1,24 @@
 'use client';
 
-import { useProject } from '@/lib/hooks/useProjects';
+import { useState } from 'react';
+import { useProject, useDeleteProject } from '@/lib/hooks/useProjects';
 import { useIndicators } from '@/lib/hooks/useIndicators';
 import { downloadPdf, downloadExcel } from '@/lib/api/download';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { 
   ArrowLeft, 
   Calendar, 
   DollarSign, 
   Edit,
   TrendingUp,
-  Plus
+  Plus,
+  Download,
+  FileSpreadsheet,
+  Trash2,
+  AlertTriangle,
+  X
 } from 'lucide-react';
-import { Download, FileSpreadsheet } from 'lucide-react';
 
 const statusLabels = {
   draft: { label: 'Brouillon', color: 'bg-gray-100 text-gray-700' },
@@ -24,10 +29,14 @@ const statusLabels = {
 
 export default function ProjectDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const projectId = params.id as string;
   
   const { data: project, isLoading: projectLoading } = useProject(projectId);
   const { data: indicators, isLoading: indicatorsLoading } = useIndicators(projectId);
+  const deleteProject = useDeleteProject();
+  
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleDownloadPdf = () => {
     if (project) {
@@ -39,6 +48,14 @@ export default function ProjectDetailPage() {
     if (project) {
       downloadExcel(projectId, `donnees-${project.name}.xlsx`);
     }
+  };
+
+  const handleDelete = () => {
+    deleteProject.mutate(projectId, {
+      onSuccess: () => {
+        router.push('/projects');
+      },
+    });
   };
 
   if (projectLoading) {
@@ -54,16 +71,18 @@ export default function ProjectDetailPage() {
 
   return (
     <div className="space-y-6">
+      {/* Header navigation */}
       <div className="flex items-center gap-4">
         <Link
           href="/projects"
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+          className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+          title="Retour aux projets"
         >
-          <ArrowLeft className="w-4 h-4" />
-          Retour aux projets
+          <ArrowLeft className="w-5 h-5" />
         </Link>
       </div>
 
+      {/* Card principale */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <div className="flex items-start justify-between mb-6">
           <div>
@@ -78,29 +97,47 @@ export default function ProjectDetailPage() {
             )}
           </div>
           
-          <div className="flex items-center gap-2">
+          {/* Boutons actions */}
+          <div className="flex items-center gap-1">
+            {/* Modifier */}
+            <Link
+              href={`/projects/${projectId}/edit`}
+              className="p-2 text-gray-600 hover:text-primary hover:bg-blue-50 rounded-lg transition-colors"
+              title="Modifier"
+            >
+              <Edit className="w-5 h-5" />
+            </Link>
+
+            {/* PDF */}
             <button
               onClick={handleDownloadPdf}
-              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+              title="Télécharger PDF"
             >
-              <Download className="w-4 h-4" />
-              PDF
+              <Download className="w-5 h-5" />
             </button>
+
+            {/* Excel */}
             <button
               onClick={handleDownloadExcel}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors cursor-pointer"
+              title="Télécharger Excel"
             >
-              <FileSpreadsheet className="w-4 h-4" />
-              Excel
+              <FileSpreadsheet className="w-5 h-5" />
             </button>
-            <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-              <Edit className="w-4 h-4" />
-              Modifier
+
+            {/* Supprimer */}
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+              title="Supprimer"
+            >
+              <Trash2 className="w-5 h-5" />
             </button>
           </div>
-
         </div>
 
+        {/* Infos projet */}
         <div className="grid grid-cols-3 gap-4 mb-6">
           {project.budget && (
             <div className="bg-gray-50 rounded-lg p-4">
@@ -140,6 +177,7 @@ export default function ProjectDetailPage() {
         </div>
       </div>
 
+      {/* Section Indicateurs */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
@@ -199,6 +237,39 @@ export default function ProjectDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Modal confirmation suppression */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+            <div className="flex items-center gap-3 text-red-600 mb-4">
+              <AlertTriangle className="w-6 h-6" />
+              <h3 className="text-lg font-semibold">Confirmer la suppression</h3>
+            </div>
+            <p className="text-gray-600 mb-6">
+              Êtes-vous sûr de vouloir supprimer le projet <strong>"{project.name}"</strong> ? 
+              <br /><br />
+              Cette action est irréversible et supprimera également tous les indicateurs associés.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleDelete}
+                disabled={deleteProject.isPending}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {deleteProject.isPending ? 'Suppression...' : 'Supprimer définitivement'}
+              </button>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleteProject.isPending}
+                className="flex-1 py-2 text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
