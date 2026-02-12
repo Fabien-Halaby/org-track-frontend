@@ -12,7 +12,7 @@ import {
   Target,
   ArrowRight
 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function IndicatorsPage() {
   const searchParams = useSearchParams();

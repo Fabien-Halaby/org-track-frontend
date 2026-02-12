@@ -91,7 +91,7 @@ export default function NewIndicatorPage() {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Nom de l'indicateur *
+            {"Nom de l'indicateur *"}
           </label>
           <input
             {...register('name')}
@@ -147,7 +147,7 @@ export default function NewIndicatorPage() {
 
         {createIndicator.isError && (
           <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
-            Erreur lors de la création de l'indicateur
+            {"Erreur lors de la création de l'indicateur"}
           </div>
         )}
 
