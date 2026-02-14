@@ -139,9 +139,9 @@ export default function EditIndicatorPage() {
         
         {/* Nom */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+          <label className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
             <Tag className="w-4 h-4" />
-            Nom de l'indicateur *
+            {"Nom de l'indicateur *"}
           </label>
           <input
             type="text"
@@ -156,7 +156,7 @@ export default function EditIndicatorPage() {
 
         {/* Description */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+          <label className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
             <FileText className="w-4 h-4" />
             Description
           </label>
@@ -170,7 +170,7 @@ export default function EditIndicatorPage() {
 
         {/* Type */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+          <label className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
             <BarChart3 className="w-4 h-4" />
             Type de mesure *
           </label>
@@ -199,7 +199,7 @@ export default function EditIndicatorPage() {
 
         {/* Objectif */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+          <label className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
             <Target className="w-4 h-4" />
             Valeur cible (optionnel)
           </label>
