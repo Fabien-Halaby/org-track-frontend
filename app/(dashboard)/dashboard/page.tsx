@@ -11,8 +11,7 @@ import {
 import Link from 'next/link';
 import { 
   FolderKanban, 
-  TrendingUp, 
-  Users,
+  TrendingUp,
   AlertCircle,
   CheckCircle2,
   Clock,
@@ -21,10 +20,7 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Bell,
-  Calendar,
   Target,
-  BarChart3,
-  MoreHorizontal,
   RefreshCw
 } from 'lucide-react';
 import { 
@@ -35,16 +31,12 @@ import {
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
-  BarChart,
-  Bar,
   PieChart,
   Pie,
   Cell
 } from 'recharts';
-import { format, subMonths, isAfter } from 'date-fns';
+import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 export default function DashboardPage() {
   const { organization } = useAuthStore();
@@ -133,7 +125,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-lg font-semibold text-gray-900">Évolution sur 12 mois</h2>
-              <p className="text-sm text-gray-500">Saisies d'indicateurs et création de projets</p>
+              <p className="text-sm text-gray-500">{"Saisies d'indicateurs et création de projets"}</p>
             </div>
             <div className="flex items-center gap-4 text-sm">
               <div className="flex items-center gap-2">
@@ -239,6 +231,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Répartition projets */}
+                {/* Répartition projets */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-6">Répartition des projets</h2>
           <div className="h-64">
@@ -247,9 +240,10 @@ export default function DashboardPage() {
                 <Pie
                   data={[
                     { name: 'Actifs', value: stats?.projects.active || 0, color: '#10b981' },
-                    { name: 'Brouillons', value: (stats?.projects.total || 0) - (stats?.projects.active || 0) - (stats?.projects.completed || 0), color: '#6b7280' },
                     { name: 'Terminés', value: stats?.projects.completed || 0, color: '#3b82f6' },
-                  ]}
+                    { name: 'Brouillons', value: Math.max(0, (stats?.projects.total || 0) - (stats?.projects.active || 0) - (stats?.projects.completed || 0)), color: '#6b7280' },
+                    { name: 'Annulés', value: (stats?.projects.total || 0) - (stats?.projects.active || 0) - (stats?.projects.completed || 0) - Math.max(0, (stats?.projects.total || 0) - (stats?.projects.active || 0) - (stats?.projects.completed || 0)), color: '#ef4444' },
+                  ].filter(item => item.value > 0)}
                   cx="50%"
                   cy="50%"
                   innerRadius={60}
@@ -259,29 +253,44 @@ export default function DashboardPage() {
                 >
                   {[
                     { name: 'Actifs', value: stats?.projects.active || 0, color: '#10b981' },
-                    { name: 'Brouillons', value: (stats?.projects.total || 0) - (stats?.projects.active || 0) - (stats?.projects.completed || 0), color: '#6b7280' },
                     { name: 'Terminés', value: stats?.projects.completed || 0, color: '#3b82f6' },
-                  ].map((entry, index) => (
+                    { name: 'Brouillons', value: Math.max(0, (stats?.projects.total || 0) - (stats?.projects.active || 0) - (stats?.projects.completed || 0)), color: '#6b7280' },
+                  ].filter(item => item.value > 0).map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip 
+                  formatter={(value: number, name: string) => [`${value} projet${value > 1 ? 's' : ''}`, name]}
+                />
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="flex justify-center gap-4 mt-4 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-green-500"></div>
-              <span className="text-gray-600">Actifs</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-              <span className="text-gray-600">Terminés</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-gray-500"></div>
-              <span className="text-gray-600">Autres</span>
-            </div>
+          
+          {/* Légende dynamique */}
+          <div className="flex flex-wrap justify-center gap-4 mt-4 text-sm">
+            {stats?.projects.active ? (
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                <span className="text-gray-600">Actifs ({stats.projects.active})</span>
+              </div>
+            ) : null}
+            
+            {stats?.projects.completed ? (
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                <span className="text-gray-600">Terminés ({stats.projects.completed})</span>
+              </div>
+            ) : null}
+
+            {(() => {
+              const drafts = Math.max(0, (stats?.projects.total || 0) - (stats?.projects.active || 0) - (stats?.projects.completed || 0));
+              return drafts > 0 ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-gray-500"></div>
+                  <span className="text-gray-600">Brouillons ({drafts})</span>
+                </div>
+              ) : null;
+            })()}
           </div>
         </div>
       </div>
@@ -337,7 +346,7 @@ function KpiCard({
 
   return (
     <Link href={href} className="block group">
-      <div className={`bg-white rounded-2xl shadow-sm border ${theme.border} p-6 hover:shadow-md transition-all`}>
+      <div className={`bg-white rounded-2xl shadow-sm border ${theme.border} p-6 hover:shadow-md transition-all h-56 flex flex-col justify-between`}>
         <div className="flex items-start justify-between">
           <div>
             <p className="text-sm font-medium text-gray-600">{title}</p>

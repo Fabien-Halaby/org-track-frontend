@@ -48,7 +48,11 @@ export function useCreateProject() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
     },
+    onError: (error: any) => {
+      throw new Error(error.response?.data?.message || 'Erreur lors de la création');
+    }
   });
 }
 
@@ -73,8 +77,12 @@ export function useDeleteProject() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
       router.push('/projects');
     },
+    onError: (error: any) => {
+      throw new Error(error.response?.data?.message || 'Erreur lors de la suppression');
+    }
   });
 }
 
@@ -89,6 +97,69 @@ export function useUpdateProject() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['project', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
     },
+    onError: (error: any) => {
+      throw new Error(error.response?.data?.message || 'Erreur lors de la modification');
+    }
+  });
+}
+
+// === ACTIONS DE STATUT ===
+
+export function useActivateProject() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (projectId: string) => {
+      const response = await api.post(`/projects/${projectId}/activate`);
+      return response.data;
+    },
+    onSuccess: (_, projectId) => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
+    },
+    onError: (error: any) => {
+      throw new Error(error.response?.data?.message || 'Impossible d\'activer le projet');
+    }
+  });
+}
+
+export function useCompleteProject() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (projectId: string) => {
+      const response = await api.post(`/projects/${projectId}/complete`);
+      return response.data;
+    },
+    onSuccess: (_, projectId) => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
+    },
+    onError: (error: any) => {
+      throw new Error(error.response?.data?.message || 'Impossible de terminer le projet');
+    }
+  });
+}
+
+export function useCancelProject() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ projectId, reason }: { projectId: string; reason?: string }) => {
+      const response = await api.post(`/projects/${projectId}/cancel`, { reason });
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['project', variables.projectId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
+    },
+    onError: (error: any) => {
+      throw new Error(error.response?.data?.message || 'Impossible d\'annuler le projet');
+    }
   });
 }
