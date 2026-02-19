@@ -13,7 +13,12 @@ const indicatorSchema = z.object({
   name: z.string().min(2, 'Nom requis'),
   description: z.string().optional(),
   type: z.enum(['number', 'percentage', 'currency', 'boolean']),
-  targetValue: z.string().optional(),
+  frequency: z.enum(['daily', 'weekly', 'monthly', 'quarterly', 'yearly', 'free']),
+  targetValue: z.union([
+    z.string().min(1).transform((val) => parseFloat(val)),
+    z.literal(''),
+    z.undefined(),
+  ]).optional(),
   projectId: z.string().min(1, 'Projet requis'),
 });
 
@@ -36,21 +41,34 @@ export default function NewIndicatorPage() {
     defaultValues: {
       projectId: preselectedProject,
       type: 'number',
+      frequency: 'monthly',
     },
   });
 
   const onSubmit = (data: IndicatorForm) => {
-    createIndicator.mutate(
-      {
-        ...data,
-        targetValue: data.targetValue ? parseFloat(data.targetValue) : undefined,
+    const payload: any = {
+      name: data.name,
+      description: data.description || undefined,
+      type: data.type,
+      frequency: data.frequency,
+      projectId: data.projectId,
+    };
+    
+    // N'ajouter targetValue que s'il est valide
+    if (data.targetValue && data.targetValue !== '' && !isNaN(Number(data.targetValue))) {
+      payload.targetValue = Number(data.targetValue);
+    }
+    
+    console.log('Payload:', payload);
+    
+    createIndicator.mutate(payload, {
+      onSuccess: () => {
+        router.push(`/indicators?project=${data.projectId}`);
       },
-      {
-        onSuccess: (_, variables) => {
-          router.push(`/indicators?project=${variables.projectId}`);
-        },
-      }
-    );
+      onError: (error: any) => {
+        console.error('Erreur:', error.response?.data);
+      },
+    });
   };
 
   return (
@@ -113,6 +131,27 @@ export default function NewIndicatorPage() {
             className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none resize-none"
             placeholder="Décrivez ce que mesure cet indicateur..."
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Fréquence de saisie *
+          </label>
+          <select
+            {...register('frequency')}
+            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+            // defaultValue={"monthly"}
+          >
+            <option value="daily">Quotidien (ex: bénéficiaires accueillis)</option>
+            <option value="weekly">Hebdomadaire (ex: sessions de formation)</option>
+            <option value="monthly">Mensuel (ex: budget consommé)</option>
+            <option value="quarterly">{"Trimestriel (ex: rapport d'impact)"}</option>
+            <option value="yearly">Annuel (ex: audit financier)</option>
+            <option value="free">Libre (pas de contrainte)</option>
+          </select>
+          <p className="text-xs text-gray-500 mt-1">
+            Définit la périodicité de saisie des données
+          </p>
         </div>
 
         <div className="grid grid-cols-2 gap-4">

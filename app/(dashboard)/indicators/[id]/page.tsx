@@ -24,6 +24,7 @@ import {
   useDeleteIndicator,
   useDeleteValue,
   IndicatorValue,
+  IndicatorFrequency,
 } from '@/lib/hooks/useIndicators';
 import { useRole } from '@/lib/hooks/useRole';
 import {
@@ -58,7 +59,7 @@ export default function IndicatorDetailPage() {
   const deleteIndicator = useDeleteIndicator();
   const deleteValue = useDeleteValue();
 
-  // ✅ Hook rôle
+  // Hook rôle
   const { isAdmin, canWrite, canAddValues } = useRole();
 
   const [showAddForm, setShowAddForm] = useState(false);
@@ -201,7 +202,7 @@ export default function IndicatorDetailPage() {
           </div>
         </div>
 
-        {/* ✅ Edit : admin et manager uniquement */}
+        {/* Edit : admin et manager uniquement */}
         <div className="flex items-center gap-1">
           {canWrite && (
             <Link
@@ -212,7 +213,7 @@ export default function IndicatorDetailPage() {
               <Edit2 className="w-5 h-5" />
             </Link>
           )}
-          {/* ✅ Supprimer : admin uniquement */}
+          {/* Supprimer : admin uniquement */}
           {isAdmin && (
             <button
               onClick={() => setShowDeleteConfirm(true)}
@@ -299,7 +300,7 @@ export default function IndicatorDetailPage() {
             <Calendar className="w-5 h-5" />
             Historique des saisies
           </h2>
-          {/* ✅ Bouton saisie : admin, manager et agent */}
+          {/* Bouton saisie : admin, manager et agent */}
           {canAddValues && (
             <button
               onClick={() => {
@@ -348,14 +349,7 @@ export default function IndicatorDetailPage() {
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Période
-                </label>
-                <input
-                  type="month"
-                  {...register('period')}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary outline-none"
-                />
+                <PeriodInput frequency={indicator.frequency} register={register} error={errors.period?.message} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -416,7 +410,7 @@ export default function IndicatorDetailPage() {
                   )}
                 </div>
                 <div className="flex items-center gap-1">
-                  {/* ✅ Modifier valeur : admin, manager et agent */}
+                  {/* Modifier valeur : admin, manager et agent */}
                   {canAddValues && (
                     <button
                       onClick={() => startEditing(entry)}
@@ -426,7 +420,7 @@ export default function IndicatorDetailPage() {
                       <Edit2 className="w-4 h-4" />
                     </button>
                   )}
-                  {/* ✅ Supprimer valeur : admin et manager uniquement */}
+                  {/* Supprimer valeur : admin et manager uniquement */}
                   {canWrite && (
                     <button
                       onClick={() => setValueToDelete(entry.id)}
@@ -514,3 +508,85 @@ export default function IndicatorDetailPage() {
     </div>
   );
 }
+
+
+const frequencyLabels: Record<IndicatorFrequency, string> = {
+  daily: 'Quotidien',
+  weekly: 'Hebdomadaire',
+  monthly: 'Mensuel',
+  quarterly: 'Trimestriel',
+  yearly: 'Annuel',
+  free: 'Libre',
+};
+
+const frequencyExamples: Record<IndicatorFrequency, string> = {
+  daily: 'ex: 2026-01-15',
+  weekly: 'ex: 2026-W03',
+  monthly: 'ex: 2026-01',
+  quarterly: 'ex: 2026-T1',
+  yearly: 'ex: 2026',
+  free: 'ex: Janvier 2026',
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const PeriodInput = ({ frequency, register, error }: { frequency: IndicatorFrequency, register: any, error?: string }) => {
+  const label = frequencyLabels[frequency];
+  
+  switch (frequency) {
+    case 'daily':
+      return (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+          <input type="date" {...register('period')} className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary outline-none" />
+        </div>
+      );
+    case 'weekly':
+      return (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Semaine</label>
+          <input type="week" {...register('period')} className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary outline-none" />
+        </div>
+      );
+    case 'quarterly':
+      return (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Trimestre</label>
+          <select {...register('period')} className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary outline-none">
+            <option value="">Sélectionner...</option>
+            {[2023, 2026, 2025, 2026].map(year =>
+              ['T1', 'T2', 'T3', 'T4'].map(q => (
+                <option key={`${year}-${q}`} value={`${year}-${q}`}>{year} — {q}</option>
+              ))
+            )}
+          </select>
+          {error && <p className="text-red-600 text-xs mt-1">{error}</p>}
+        </div>
+      );
+    case 'monthly':
+      return (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Mois</label>
+          <input type="month" {...register('period')} className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary outline-none" />
+        </div>
+      );
+    case 'yearly':
+      return (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Année</label>
+          <input type="number" min="2000" max="2100" {...register('period')} className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary outline-none" />
+        </div>
+      );
+    default: // free
+      return (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Période ({label})</label>
+          <input
+            {...register('period')}
+            placeholder={frequencyExamples[frequency]}
+            className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary outline-none"
+          />
+          {error && <p className="text-red-600 text-xs mt-1">{error}</p>}
+        </div>
+      );
+  }
+};

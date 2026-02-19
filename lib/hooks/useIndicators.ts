@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../api/client';
 import { useRouter } from 'next/navigation';
 
+export type IndicatorFrequency = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly' | 'free';
+
 export interface Indicator {
   id: string;
   name: string;
@@ -166,4 +168,88 @@ export function useIndicatorTimeline(indicatorId: string) {
     },
     enabled: !!indicatorId,
   });
+}
+
+
+
+
+
+export const frequencyLabels: Record<IndicatorFrequency, string> = {
+  daily: 'Quotidien',
+  weekly: 'Hebdomadaire',
+  monthly: 'Mensuel',
+  quarterly: 'Trimestriel',
+  yearly: 'Annuel',
+  free: 'Libre',
+};
+
+export const frequencyFormats: Record<IndicatorFrequency, string> = {
+  daily: 'YYYY-MM-DD',
+  weekly: 'YYYY-WXX',
+  monthly: 'YYYY-MM',
+  quarterly: 'YYYY-QX',
+  yearly: 'YYYY',
+  free: 'Libre',
+};
+
+export const frequencyExamples: Record<IndicatorFrequency, string> = {
+  daily: '2026-02-19',
+  weekly: '2026-W08',
+  monthly: '2026-02',
+  quarterly: '2026-Q1',
+  yearly: '2026',
+  free: 'Période personnalisée',
+};
+
+export function getCurrentPeriod(frequency: IndicatorFrequency): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  
+  switch (frequency) {
+    case 'daily':
+      return now.toISOString().slice(0, 10);
+    case 'weekly': {
+      const startOfYear = new Date(year, 0, 1);
+      const pastDays = (now.getTime() - startOfYear.getTime()) / 86400000;
+      const week = Math.ceil((pastDays + startOfYear.getDay() + 1) / 7);
+      return `${year}-W${String(week).padStart(2, '0')}`;
+    }
+    case 'monthly':
+      return now.toISOString().slice(0, 7);
+    case 'quarterly': {
+      const quarter = Math.ceil((now.getMonth() + 1) / 3);
+      return `${year}-Q${quarter}`;
+    }
+    case 'yearly':
+      return String(year);
+    case 'free':
+      return now.toISOString().slice(0, 7);
+    default:
+      return now.toISOString().slice(0, 7);
+  }
+}
+
+export function validatePeriod(period: string, frequency: IndicatorFrequency): boolean {
+  const patterns = {
+    daily: /^\d{4}-\d{2}-\d{2}$/,
+    weekly: /^\d{4}-W\d{2}$/,
+    monthly: /^\d{4}-\d{2}$/,
+    quarterly: /^\d{4}-Q[1-4]$/,
+    yearly: /^\d{4}$/,
+    free: /.*/,
+  };
+  return patterns[frequency].test(period);
+}
+
+export function getPeriodInputType(frequency: IndicatorFrequency): string {
+  switch (frequency) {
+    case 'daily':
+      return 'date';
+    case 'monthly':
+      return 'month';
+    case 'yearly':
+      return 'number';
+    default:
+      return 'text';
+  }
 }
