@@ -3,12 +3,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useProjects } from '@/lib/hooks/useProjects';
 import { useIndicators, useIndicatorTimeline, Indicator } from '@/lib/hooks/useIndicators';
+import { useRole } from '@/lib/hooks/useRole';
 import api from '@/lib/api/client';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { 
-  TrendingUp, 
-  Plus, 
+import {
+  TrendingUp,
+  Plus,
   BarChart3,
   Target,
   ArrowRight,
@@ -18,8 +19,17 @@ import {
   ChevronRight,
   Search,
   Filter,
-  X} from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+  X,
+} from 'lucide-react';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 
 type FilterType = 'all' | 'number' | 'percentage' | 'currency' | 'boolean';
 type SortBy = 'name' | 'progress' | 'recent';
@@ -29,19 +39,21 @@ export default function IndicatorsPage() {
   const projectFromUrl = searchParams.get('project');
 
   const { data: projects, isLoading: projectsLoading } = useProjects();
-  const [selectedProject, setSelectedProject] = useState<string>(projectFromUrl || '');
+  const { canWrite, canAddValues } = useRole(); // ✅ hook rôle
+
+  const [selectedProject, setSelectedProject] = useState<string>(
+    projectFromUrl || '',
+  );
   const [allIndicators, setAllIndicators] = useState<Indicator[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [sortBy, setSortBy] = useState<SortBy>('recent');
   const [showFilters, setShowFilters] = useState(false);
 
-  // Removed unnecessary effect that sets state synchronously from effect
-
   // Charge tous les indicateurs de tous les projets
   useEffect(() => {
     if (!projects) return;
-    
+
     const loadAllIndicators = async () => {
       const allInds: Indicator[] = [];
       for (const project of projects) {
@@ -50,16 +62,19 @@ export default function IndicatorsPage() {
           const indicators = response.data.map((ind: Indicator) => ({
             ...ind,
             projectName: project.name,
-            projectId: project.id
+            projectId: project.id,
           }));
           allInds.push(...indicators);
         } catch (error) {
-          console.error(`Erreur chargement indicateurs projet ${project.id}:`, error);
+          console.error(
+            `Erreur chargement indicateurs projet ${project.id}:`,
+            error,
+          );
         }
       }
       setAllIndicators(allInds);
     };
-    
+
     loadAllIndicators();
   }, [projects]);
 
@@ -67,24 +82,25 @@ export default function IndicatorsPage() {
   const filteredIndicators = useMemo(() => {
     let result = allIndicators;
 
-    // Filtre par recherche
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      result = result.filter(ind => 
-        ind.name.toLowerCase().includes(query) ||
-        ind.description?.toLowerCase().includes(query)
+      result = result.filter(
+        (ind) =>
+          ind.name.toLowerCase().includes(query) ||
+          ind.description?.toLowerCase().includes(query),
       );
     }
 
-    // Filtre par type
     if (filterType !== 'all') {
-      result = result.filter(ind => ind.type === filterType);
+      result = result.filter((ind) => ind.type === filterType);
     }
 
-    // Tri
     result = [...result].sort((a, b) => {
       if (sortBy === 'name') return a.name.localeCompare(b.name);
-      if (sortBy === 'recent') return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      if (sortBy === 'recent')
+        return (
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
       return 0;
     });
 
@@ -94,36 +110,48 @@ export default function IndicatorsPage() {
   // Stats globales
   const globalStats = useMemo(() => {
     if (!projects) return null;
-    
-    const totalBudget = projects.reduce((sum, p) => sum + (Number(p.budget) || 0), 0);
-    const activeProjects = projects.filter(p => p.status === 'active').length;
+
+    const totalBudget = projects.reduce(
+      (sum, p) => sum + (Number(p.budget) || 0),
+      0,
+    );
+    const activeProjects = projects.filter((p) => p.status === 'active').length;
     const totalIndicators = allIndicators.length;
-    const indicatorsWithTarget = allIndicators.filter(i => i.targetValue !== null).length;
+    const indicatorsWithTarget = allIndicators.filter(
+      (i) => i.targetValue !== null,
+    ).length;
 
     return {
       totalBudget,
       activeProjects,
       totalIndicators,
       indicatorsWithTarget,
-      projectsCount: projects.length
+      projectsCount: projects.length,
     };
   }, [projects, allIndicators]);
 
-  // Vue détail projet sélectionné
-  const { data: indicators, isLoading } = useIndicators(selectedProject || undefined);
+  const { data: indicators, isLoading } = useIndicators(
+    selectedProject || undefined,
+  );
 
-  //! === VUE GLOBALE (aucun projet sélectionné) ===
+  // === VUE GLOBALE ===
   if (!selectedProject) {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Tableau de bord des indicateurs</h1>
-          <p className="text-gray-500 mt-1">Vue transversale de tous vos projets et performances</p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Tableau de bord des indicateurs
+          </h1>
+          <p className="text-gray-500 mt-1">
+            Vue transversale de tous vos projets et performances
+          </p>
         </div>
 
         {projectsLoading ? (
           <div className="animate-pulse space-y-4">
-            {[1, 2, 3].map(i => <div key={i} className="h-32 bg-gray-100 rounded-xl"></div>)}
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-32 bg-gray-100 rounded-xl"></div>
+            ))}
           </div>
         ) : !globalStats ? (
           <div className="text-center py-12">Aucune donnée</div>
@@ -141,7 +169,10 @@ export default function IndicatorsPage() {
               <KpiCard
                 title="Projets actifs"
                 value={globalStats.activeProjects}
-                subtitle={`${Math.round((globalStats.activeProjects / globalStats.projectsCount) * 100)}% en cours`}
+                subtitle={`${Math.round(
+                  (globalStats.activeProjects / globalStats.projectsCount) *
+                    100,
+                )}% en cours`}
                 icon={Activity}
                 color="green"
               />
@@ -154,7 +185,10 @@ export default function IndicatorsPage() {
               />
               <KpiCard
                 title="Mois en cours"
-                value={new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+                value={new Date().toLocaleDateString('fr-FR', {
+                  month: 'long',
+                  year: 'numeric',
+                })}
                 subtitle="Période de reporting"
                 icon={Calendar}
                 color="orange"
@@ -182,11 +216,13 @@ export default function IndicatorsPage() {
                     </button>
                   )}
                 </div>
-                
+
                 <button
                   onClick={() => setShowFilters(!showFilters)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
-                    showFilters ? 'bg-blue-50 border-primary text-primary' : 'border-gray-300 hover:bg-gray-50'
+                    showFilters
+                      ? 'bg-blue-50 border-primary text-primary'
+                      : 'border-gray-300 hover:bg-gray-50'
                   }`}
                 >
                   <Filter className="w-4 h-4" />
@@ -197,14 +233,15 @@ export default function IndicatorsPage() {
                 </button>
               </div>
 
-              {/* Filtres avancés */}
               {showFilters && (
                 <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-4">
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-500">Type:</span>
                     <select
                       value={filterType}
-                      onChange={(e) => setFilterType(e.target.value as FilterType)}
+                      onChange={(e) =>
+                        setFilterType(e.target.value as FilterType)
+                      }
                       className="px-3 py-1 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary outline-none"
                     >
                       <option value="all">Tous</option>
@@ -214,7 +251,7 @@ export default function IndicatorsPage() {
                       <option value="boolean">Oui/Non</option>
                     </select>
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-500">Trier par:</span>
                     <select
@@ -247,7 +284,8 @@ export default function IndicatorsPage() {
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                   <h3 className="font-semibold text-gray-900">
-                    {filteredIndicators.length} indicateur{filteredIndicators.length > 1 ? 's' : ''}
+                    {filteredIndicators.length} indicateur
+                    {filteredIndicators.length > 1 ? 's' : ''}
                   </h3>
                 </div>
                 <div className="divide-y divide-gray-100">
@@ -259,19 +297,25 @@ export default function IndicatorsPage() {
             ) : searchQuery ? (
               <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
                 <Search className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500">Aucun indicateur ne correspond à votre recherche</p>
+                <p className="text-gray-500">
+                  Aucun indicateur ne correspond à votre recherche
+                </p>
               </div>
             ) : null}
 
             {/* Liste projets avec preview */}
             <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Explorer par projet</h3>
-              
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Explorer par projet
+              </h3>
+
               <div className="space-y-3">
-                {projects?.map(project => {
-                  const projectIndicators = allIndicators.filter(ind => ind.projectId === project.id);
+                {projects?.map((project) => {
+                  const projectIndicators = allIndicators.filter(
+                    (ind) => ind.projectId === project.id,
+                  );
                   const hasIndicators = projectIndicators.length > 0;
-                  
+
                   return (
                     <button
                       key={project.id}
@@ -279,18 +323,27 @@ export default function IndicatorsPage() {
                       className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-blue-50 hover:border-blue-200 border border-transparent transition-all text-left"
                     >
                       <div className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                          project.status === 'active' ? 'bg-green-100 text-green-600' :
-                          project.status === 'completed' ? 'bg-blue-100 text-blue-600' :
-                          'bg-gray-100 text-gray-600'
-                        }`}>
+                        <div
+                          className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                            project.status === 'active'
+                              ? 'bg-green-100 text-green-600'
+                              : project.status === 'completed'
+                              ? 'bg-blue-100 text-blue-600'
+                              : 'bg-gray-100 text-gray-600'
+                          }`}
+                        >
                           <Activity className="w-5 h-5" />
                         </div>
                         <div>
-                          <h4 className="font-medium text-gray-900">{project.name}</h4>
+                          <h4 className="font-medium text-gray-900">
+                            {project.name}
+                          </h4>
                           <p className="text-sm text-gray-500">
-                            {project.budget ? `${Number(project.budget).toLocaleString('fr-FR')} € • ` : ''}
-                            {projectIndicators.length} indicateur{projectIndicators.length !== 1 ? 's' : ''}
+                            {project.budget
+                              ? `${Number(project.budget).toLocaleString('fr-FR')} € • `
+                              : ''}
+                            {projectIndicators.length} indicateur
+                            {projectIndicators.length !== 1 ? 's' : ''}
                           </p>
                         </div>
                       </div>
@@ -298,8 +351,8 @@ export default function IndicatorsPage() {
                         {hasIndicators && (
                           <div className="flex -space-x-2">
                             {projectIndicators.slice(0, 3).map((_, i) => (
-                              <div 
-                                key={i} 
+                              <div
+                                key={i}
                                 className="w-8 h-8 rounded-full bg-blue-100 border-2 border-white flex items-center justify-center text-xs text-blue-600 font-medium"
                               >
                                 {i + 1}
@@ -340,44 +393,59 @@ export default function IndicatorsPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Indicateurs</h1>
             <p className="text-gray-500 text-sm">
-              {projects?.find(p => p.id === selectedProject)?.name}
+              {projects?.find((p) => p.id === selectedProject)?.name}
             </p>
           </div>
         </div>
-        <Link
-          href={`/indicators/new?project=${selectedProject}`}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Nouvel indicateur
-        </Link>
+
+        {/* ✅ Bouton "Nouvel indicateur" : admin et manager uniquement */}
+        {canWrite && (
+          <Link
+            href={`/indicators/new?project=${selectedProject}`}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Nouvel indicateur
+          </Link>
+        )}
       </div>
 
       {isLoading && (
-        <div className="flex items-center justify-center h-64">Chargement...</div>
+        <div className="flex items-center justify-center h-64">
+          Chargement...
+        </div>
       )}
 
       {indicators && indicators.length === 0 && (
         <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
           <BarChart3 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
           <p className="text-gray-500">Aucun indicateur pour ce projet</p>
-          <Link
-            href={`/indicators/new?project=${selectedProject}`}
-            className="text-primary hover:underline mt-2 inline-block"
-          >
-            Créer votre premier indicateur
-          </Link>
+          {/* ✅ Lien créer : admin et manager uniquement */}
+          {canWrite && (
+            <Link
+              href={`/indicators/new?project=${selectedProject}`}
+              className="text-primary hover:underline mt-2 inline-block"
+            >
+              Créer votre premier indicateur
+            </Link>
+          )}
         </div>
       )}
 
       <div className="grid gap-6">
         {indicators?.map((indicator) => (
-          <IndicatorCard key={indicator.id} indicator={indicator} />
+          <IndicatorCard
+            key={indicator.id}
+            indicator={indicator}
+            canAddValues={canAddValues} // ✅ passer la permission
+          />
         ))}
       </div>
     </div>
   );
 }
+
+// ── Composants ────────────────────────────────────────────────────────────────
 
 type KpiCardProps = {
   title: string;
@@ -399,7 +467,9 @@ function KpiCard({ title, value, subtitle, icon: Icon, color }: KpiCardProps) {
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow">
-      <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-3 ${theme.bg}`}>
+      <div
+        className={`w-12 h-12 rounded-xl flex items-center justify-center mb-3 ${theme.bg}`}
+      >
         <Icon className={`w-6 h-6 ${theme.icon}`} />
       </div>
       <p className="text-2xl font-bold text-gray-900 mb-1">{value}</p>
@@ -409,25 +479,35 @@ function KpiCard({ title, value, subtitle, icon: Icon, color }: KpiCardProps) {
   );
 }
 
-function IndicatorListItem({ indicator }: { indicator: Indicator & { projectName?: string } }) {
+function IndicatorListItem({
+  indicator,
+}: {
+  indicator: Indicator & { projectName?: string };
+}) {
   return (
     <Link
       href={`/indicators/${indicator.id}`}
       className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
     >
       <div className="flex items-center gap-4">
-        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-          indicator.type === 'currency' ? 'bg-green-100 text-green-600' :
-          indicator.type === 'percentage' ? 'bg-purple-100 text-purple-600' :
-          indicator.type === 'boolean' ? 'bg-orange-100 text-orange-600' :
-          'bg-blue-100 text-blue-600'
-        }`}>
+        <div
+          className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+            indicator.type === 'currency'
+              ? 'bg-green-100 text-green-600'
+              : indicator.type === 'percentage'
+              ? 'bg-purple-100 text-purple-600'
+              : indicator.type === 'boolean'
+              ? 'bg-orange-100 text-orange-600'
+              : 'bg-blue-100 text-blue-600'
+          }`}
+        >
           <BarChart3 className="w-5 h-5" />
         </div>
         <div>
           <h4 className="font-medium text-gray-900">{indicator.name}</h4>
           <p className="text-sm text-gray-500">
-            {indicator.projectName} • {indicator.values?.length || 0} valeur(s) saisie(s)
+            {indicator.projectName} • {indicator.values?.length || 0} valeur(s)
+            saisie(s)
           </p>
         </div>
       </div>
@@ -436,9 +516,11 @@ function IndicatorListItem({ indicator }: { indicator: Indicator & { projectName
           <div className="text-right">
             <p className="text-sm text-gray-500">Objectif</p>
             <p className="font-medium text-gray-900">
-              {indicator.type === 'currency' ? `${Number(indicator.targetValue).toLocaleString('fr-FR')} €` :
-               indicator.type === 'percentage' ? `${indicator.targetValue}%` :
-               indicator.targetValue}
+              {indicator.type === 'currency'
+                ? `${Number(indicator.targetValue).toLocaleString('fr-FR')} €`
+                : indicator.type === 'percentage'
+                ? `${indicator.targetValue}%`
+                : indicator.targetValue}
             </p>
           </div>
         )}
@@ -448,16 +530,23 @@ function IndicatorListItem({ indicator }: { indicator: Indicator & { projectName
   );
 }
 
-function IndicatorCard({ indicator }: { indicator: Indicator }) {
+function IndicatorCard({
+  indicator,
+  canAddValues,
+}: {
+  indicator: Indicator;
+  canAddValues: boolean; // ✅ prop permission
+}) {
   const { data: timeline } = useIndicatorTimeline(indicator.id);
-  
-  const chartData = timeline?.map((v) => ({
-    period: v.period,
-    value: Number(v.value),
-  })) || [];
+
+  const chartData =
+    timeline?.map((v) => ({
+      period: v.period,
+      value: Number(v.value),
+    })) || [];
 
   const currentValue = timeline?.[timeline.length - 1]?.value || 0;
-  const progress = indicator.targetValue 
+  const progress = indicator.targetValue
     ? Math.min((currentValue / indicator.targetValue) * 100, 100)
     : 0;
 
@@ -469,7 +558,8 @@ function IndicatorCard({ indicator }: { indicator: Indicator }) {
   };
 
   const formatValue = (value: number) => {
-    if (indicator.type === 'currency') return `${value.toLocaleString('fr-FR')} €`;
+    if (indicator.type === 'currency')
+      return `${value.toLocaleString('fr-FR')} €`;
     if (indicator.type === 'percentage') return `${value}%`;
     return value.toLocaleString('fr-FR');
   };
@@ -479,7 +569,9 @@ function IndicatorCard({ indicator }: { indicator: Indicator }) {
       <div className="flex items-start justify-between mb-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <h3 className="text-lg font-semibold text-gray-900">{indicator.name}</h3>
+            <h3 className="text-lg font-semibold text-gray-900">
+              {indicator.name}
+            </h3>
             <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
               {typeLabels[indicator.type]}
             </span>
@@ -503,7 +595,9 @@ function IndicatorCard({ indicator }: { indicator: Indicator }) {
             <TrendingUp className="w-4 h-4" />
             Valeur actuelle
           </div>
-          <p className="text-2xl font-bold text-gray-900">{formatValue(Number(currentValue))}</p>
+          <p className="text-2xl font-bold text-gray-900">
+            {formatValue(Number(currentValue))}
+          </p>
         </div>
 
         {indicator.targetValue && (
@@ -513,43 +607,57 @@ function IndicatorCard({ indicator }: { indicator: Indicator }) {
                 <Target className="w-4 h-4" />
                 Objectif
               </div>
-              <p className="text-2xl font-bold text-gray-900">{formatValue(Number(indicator.targetValue))}</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {formatValue(Number(indicator.targetValue))}
+              </p>
             </div>
 
             <div className="bg-purple-50 rounded-lg p-4">
               <div className="text-purple-600 text-sm mb-1">Progression</div>
-              <p className="text-2xl font-bold text-gray-900">{progress.toFixed(0)}%</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {progress.toFixed(0)}%
+              </p>
             </div>
           </>
         )}
       </div>
 
-      {chartData.length > 0 && (
+      {chartData.length > 0 ? (
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
               <XAxis dataKey="period" stroke="#6b7280" fontSize={12} />
               <YAxis stroke="#6b7280" fontSize={12} />
-              <Tooltip 
-                formatter={(value?: number) => [formatValue(value ?? 0), 'Valeur']}
-                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+              <Tooltip
+                formatter={(value?: number) => [
+                  formatValue(value ?? 0),
+                  'Valeur',
+                ]}
+                contentStyle={{
+                  borderRadius: '8px',
+                  border: 'none',
+                  boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                }}
               />
-              <Line 
-                type="monotone" 
-                dataKey="value" 
-                stroke="#2563eb" 
+              <Line
+                type="monotone"
+                dataKey="value"
+                stroke="#2563eb"
                 strokeWidth={2}
                 dot={{ fill: '#2563eb', strokeWidth: 2 }}
               />
             </LineChart>
           </ResponsiveContainer>
         </div>
-      )}
-
-      {chartData.length === 0 && (
+      ) : (
         <div className="h-32 flex items-center justify-center bg-gray-50 rounded-lg">
-          <p className="text-gray-400 text-sm">Aucune donnée saisie</p>
+          {/* Message adapté selon le rôle */}
+          <p className="text-gray-400 text-sm">
+            {canAddValues
+              ? 'Aucune donnée saisie — rendez-vous sur la page détail pour saisir des valeurs'
+              : 'Aucune donnée disponible pour cet indicateur'}
+          </p>
         </div>
       )}
     </div>

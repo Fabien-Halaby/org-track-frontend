@@ -2,15 +2,16 @@
 
 import { useState } from 'react';
 import { useAuthStore } from '@/lib/store/auth';
-import { 
-  useDashboardStats, 
-  useDashboardTrends, 
+import { useRole } from '@/lib/hooks/useRole';
+import {
+  useDashboardStats,
+  useDashboardTrends,
   useDashboardAlerts,
-  useDashboardActivity 
+  useDashboardActivity,
 } from '@/lib/hooks/useDashboard';
 import Link from 'next/link';
-import { 
-  FolderKanban, 
+import {
+  FolderKanban,
   TrendingUp,
   AlertCircle,
   CheckCircle2,
@@ -21,25 +22,26 @@ import {
   ArrowDownRight,
   Bell,
   Target,
-  RefreshCw
+  RefreshCw,
 } from 'lucide-react';
-import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   PieChart,
   Pie,
-  Cell
+  Cell,
 } from 'recharts';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 export default function DashboardPage() {
   const { organization } = useAuthStore();
+  const { canWrite } = useRole(); // ✅ hook rôle
   const [refreshKey, setRefreshKey] = useState(0);
 
   const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useDashboardStats();
@@ -49,7 +51,7 @@ export default function DashboardPage() {
 
   const handleRefresh = () => {
     refetchStats();
-    setRefreshKey(prev => prev + 1);
+    setRefreshKey((prev) => prev + 1);
   };
 
   const isLoading = statsLoading || trendsLoading || alertsLoading || activityLoading;
@@ -63,11 +65,12 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Tableau de bord
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-900">Tableau de bord</h1>
           <p className="text-gray-500 mt-2">
-            Bienvenue sur <span className="font-medium text-gray-700">{organization?.name}</span> • {format(new Date(), 'EEEE d MMMM yyyy', { locale: fr })}
+            Bienvenue sur{' '}
+            <span className="font-medium text-gray-700">{organization?.name}</span>{' '}
+            •{' '}
+            {format(new Date(), 'EEEE d MMMM yyyy', { locale: fr })}
           </p>
         </div>
         <button
@@ -79,7 +82,7 @@ export default function DashboardPage() {
         </button>
       </div>
 
-      {/* KPIs Principaux */}
+      {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <KpiCard
           title="Projets actifs"
@@ -120,12 +123,15 @@ export default function DashboardPage() {
 
       {/* Graphiques et Alertes */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Graphique tendances */}
         <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Évolution sur 12 mois</h2>
-              <p className="text-sm text-gray-500">{"Saisies d'indicateurs et création de projets"}</p>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Évolution sur 12 mois
+              </h2>
+              <p className="text-sm text-gray-500">
+                {"Saisies d'indicateurs et création de projets"}
+              </p>
             </div>
             <div className="flex items-center gap-4 text-sm">
               <div className="flex items-center gap-2">
@@ -142,37 +148,37 @@ export default function DashboardPage() {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={trends}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                <XAxis 
-                  dataKey="period" 
-                  stroke="#9ca3af" 
+                <XAxis
+                  dataKey="period"
+                  stroke="#9ca3af"
                   fontSize={12}
                   tickLine={false}
                 />
-                <YAxis 
-                  stroke="#9ca3af" 
+                <YAxis
+                  stroke="#9ca3af"
                   fontSize={12}
                   tickLine={false}
                   axisLine={false}
                 />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'white', 
-                    border: 'none', 
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'white',
+                    border: 'none',
                     borderRadius: '8px',
-                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                   }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="valuesAdded" 
-                  stroke="#3b82f6" 
+                <Line
+                  type="monotone"
+                  dataKey="valuesAdded"
+                  stroke="#3b82f6"
                   strokeWidth={3}
                   dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="projectsCreated" 
-                  stroke="#10b981" 
+                <Line
+                  type="monotone"
+                  dataKey="projectsCreated"
+                  stroke="#10b981"
                   strokeWidth={3}
                   dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
                 />
@@ -194,7 +200,7 @@ export default function DashboardPage() {
               </span>
             )}
           </div>
-          
+
           <div className="space-y-3 max-h-80 overflow-y-auto">
             {alerts && alerts.length > 0 ? (
               alerts.map((alert, idx) => (
@@ -213,7 +219,6 @@ export default function DashboardPage() {
 
       {/* Activité récente et Répartition */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Activité */}
         <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
             <Clock className="w-5 h-5" />
@@ -225,25 +230,44 @@ export default function DashboardPage() {
                 <ActivityItem key={idx} activity={activity} />
               ))
             ) : (
-              <p className="text-center py-8 text-gray-400">Aucune activité récente</p>
+              <p className="text-center py-8 text-gray-400">
+                Aucune activité récente
+              </p>
             )}
           </div>
         </div>
 
         {/* Répartition projets */}
-                {/* Répartition projets */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-6">Répartition des projets</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-6">
+            Répartition des projets
+          </h2>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={[
-                    { name: 'Actifs', value: stats?.projects.active || 0, color: '#10b981' },
-                    { name: 'Terminés', value: stats?.projects.completed || 0, color: '#3b82f6' },
-                    { name: 'Brouillons', value: Math.max(0, (stats?.projects.total || 0) - (stats?.projects.active || 0) - (stats?.projects.completed || 0)), color: '#6b7280' },
-                    { name: 'Annulés', value: (stats?.projects.total || 0) - (stats?.projects.active || 0) - (stats?.projects.completed || 0) - Math.max(0, (stats?.projects.total || 0) - (stats?.projects.active || 0) - (stats?.projects.completed || 0)), color: '#ef4444' },
-                  ].filter(item => item.value > 0)}
+                    {
+                      name: 'Actifs',
+                      value: stats?.projects.active || 0,
+                      color: '#10b981',
+                    },
+                    {
+                      name: 'Terminés',
+                      value: stats?.projects.completed || 0,
+                      color: '#3b82f6',
+                    },
+                    {
+                      name: 'Brouillons',
+                      value: Math.max(
+                        0,
+                        (stats?.projects.total || 0) -
+                          (stats?.projects.active || 0) -
+                          (stats?.projects.completed || 0),
+                      ),
+                      color: '#6b7280',
+                    },
+                  ].filter((item) => item.value > 0)}
                   cx="50%"
                   cy="50%"
                   innerRadius={60}
@@ -252,38 +276,66 @@ export default function DashboardPage() {
                   dataKey="value"
                 >
                   {[
-                    { name: 'Actifs', value: stats?.projects.active || 0, color: '#10b981' },
-                    { name: 'Terminés', value: stats?.projects.completed || 0, color: '#3b82f6' },
-                    { name: 'Brouillons', value: Math.max(0, (stats?.projects.total || 0) - (stats?.projects.active || 0) - (stats?.projects.completed || 0)), color: '#6b7280' },
-                  ].filter(item => item.value > 0).map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
+                    {
+                      name: 'Actifs',
+                      value: stats?.projects.active || 0,
+                      color: '#10b981',
+                    },
+                    {
+                      name: 'Terminés',
+                      value: stats?.projects.completed || 0,
+                      color: '#3b82f6',
+                    },
+                    {
+                      name: 'Brouillons',
+                      value: Math.max(
+                        0,
+                        (stats?.projects.total || 0) -
+                          (stats?.projects.active || 0) -
+                          (stats?.projects.completed || 0),
+                      ),
+                      color: '#6b7280',
+                    },
+                  ]
+                    .filter((item) => item.value > 0)
+                    .map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
                 </Pie>
-                <Tooltip 
-                  formatter={(value: number, name: string) => [`${value} projet${value > 1 ? 's' : ''}`, name]}
+                <Tooltip
+                  formatter={(value: number, name: string) => [
+                    `${value} projet${value > 1 ? 's' : ''}`,
+                    name,
+                  ]}
                 />
               </PieChart>
             </ResponsiveContainer>
           </div>
-          
-          {/* Légende dynamique */}
+
           <div className="flex flex-wrap justify-center gap-4 mt-4 text-sm">
             {stats?.projects.active ? (
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                <span className="text-gray-600">Actifs ({stats.projects.active})</span>
+                <span className="text-gray-600">
+                  Actifs ({stats.projects.active})
+                </span>
               </div>
             ) : null}
-            
             {stats?.projects.completed ? (
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                <span className="text-gray-600">Terminés ({stats.projects.completed})</span>
+                <span className="text-gray-600">
+                  Terminés ({stats.projects.completed})
+                </span>
               </div>
             ) : null}
-
             {(() => {
-              const drafts = Math.max(0, (stats?.projects.total || 0) - (stats?.projects.active || 0) - (stats?.projects.completed || 0));
+              const drafts = Math.max(
+                0,
+                (stats?.projects.total || 0) -
+                  (stats?.projects.active || 0) -
+                  (stats?.projects.completed || 0),
+              );
               return drafts > 0 ? (
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-gray-500"></div>
@@ -295,19 +347,32 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Actions rapides */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 text-white">
+      {/* ✅ Actions rapides : adaptées selon le rôle */}
+      <div className="bg-linear-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 text-white">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-semibold mb-2">Actions rapides</h2>
-            <p className="text-blue-100">Gérez vos projets et indicateurs efficacement</p>
+            <p className="text-blue-100">
+              {canWrite
+                ? 'Gérez vos projets et indicateurs efficacement'
+                : 'Consultez vos projets et indicateurs'}
+            </p>
           </div>
           <div className="flex gap-3">
+            {/* ✅ Bouton "Nouveau projet" : admin et manager uniquement */}
+            {canWrite && (
+              <Link
+                href="/projects/new"
+                className="px-4 py-2 bg-white text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition-colors"
+              >
+                Nouveau projet
+              </Link>
+            )}
             <Link
-              href="/projects/new"
-              className="px-4 py-2 bg-white text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition-colors"
+              href="/projects"
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-400 transition-colors"
             >
-              Nouveau projet
+              Voir les projets
             </Link>
             <Link
               href="/indicators"
@@ -322,20 +387,20 @@ export default function DashboardPage() {
   );
 }
 
-// Composants internes
+// ── Composants internes ───────────────────────────────────────────────────────
 
-function KpiCard({ 
-  title, 
-  value, 
-  total, 
+function KpiCard({
+  title,
+  value,
+  total,
   subtitle,
-  icon: Icon, 
-  color, 
-  trend, 
+  icon: Icon,
+  color,
+  trend,
   trendLabel,
-  href 
+  href,
 }: any) {
-  const colors = {
+  const colors: Record<string, { bg: string; icon: string; border: string }> = {
     blue: { bg: 'bg-blue-50', icon: 'text-blue-600', border: 'border-blue-200' },
     green: { bg: 'bg-green-50', icon: 'text-green-600', border: 'border-green-200' },
     purple: { bg: 'bg-purple-50', icon: 'text-purple-600', border: 'border-purple-200' },
@@ -346,7 +411,9 @@ function KpiCard({
 
   return (
     <Link href={href} className="block group">
-      <div className={`bg-white rounded-2xl shadow-sm border ${theme.border} p-6 hover:shadow-md transition-all h-56 flex flex-col justify-between`}>
+      <div
+        className={`bg-white rounded-2xl shadow-sm border ${theme.border} p-6 hover:shadow-md transition-all h-56 flex flex-col justify-between`}
+      >
         <div className="flex items-start justify-between">
           <div>
             <p className="text-sm font-medium text-gray-600">{title}</p>
@@ -358,16 +425,24 @@ function KpiCard({
               <p className="text-sm text-gray-500 mt-1">{subtitle}</p>
             )}
           </div>
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${theme.bg} group-hover:scale-110 transition-transform`}>
+          <div
+            className={`w-12 h-12 rounded-xl flex items-center justify-center ${theme.bg} group-hover:scale-110 transition-transform`}
+          >
             <Icon className={`w-6 h-6 ${theme.icon}`} />
           </div>
         </div>
         {trend !== undefined && (
           <div className="mt-4 flex items-center gap-2">
-            <div className={`flex items-center gap-1 text-sm font-medium ${
-              trend > 50 ? 'text-green-600' : 'text-orange-600'
-            }`}>
-              {trend > 50 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+            <div
+              className={`flex items-center gap-1 text-sm font-medium ${
+                trend > 50 ? 'text-green-600' : 'text-orange-600'
+              }`}
+            >
+              {trend > 50 ? (
+                <ArrowUpRight className="w-4 h-4" />
+              ) : (
+                <ArrowDownRight className="w-4 h-4" />
+              )}
               {trend}%
             </div>
             <span className="text-sm text-gray-400">{trendLabel}</span>
@@ -379,13 +454,13 @@ function KpiCard({
 }
 
 function AlertCard({ alert }: { alert: any }) {
-  const severityColors = {
+  const severityColors: Record<string, string> = {
     critical: 'bg-red-50 border-red-200 text-red-800',
     warning: 'bg-orange-50 border-orange-200 text-orange-800',
     info: 'bg-blue-50 border-blue-200 text-blue-800',
   };
 
-  const icons = {
+  const icons: Record<string, any> = {
     no_data: AlertCircle,
     stale_data: Clock,
     low_progress: TrendingUp,
@@ -394,12 +469,12 @@ function AlertCard({ alert }: { alert: any }) {
   const Icon = icons[alert.type] || AlertCircle;
 
   return (
-    <Link 
+    <Link
       href={`/indicators/${alert.indicator.id}`}
       className={`block p-4 rounded-xl border ${severityColors[alert.severity]} hover:shadow-sm transition-shadow`}
     >
       <div className="flex items-start gap-3">
-        <Icon className="w-5 h-5 mt-0.5 flex-shrink-0" />
+        <Icon className="w-5 h-5 mt-0.5 shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="font-medium text-sm">{alert.message}</p>
           <p className="text-sm opacity-75 mt-1">{alert.indicator.name}</p>
@@ -411,12 +486,12 @@ function AlertCard({ alert }: { alert: any }) {
 }
 
 function ActivityItem({ activity }: { activity: any }) {
-  const icons = {
+  const icons: Record<string, any> = {
     value_added: Activity,
     project_created: FolderKanban,
   };
 
-  const colors = {
+  const colors: Record<string, string> = {
     value_added: 'bg-blue-100 text-blue-600',
     project_created: 'bg-green-100 text-green-600',
   };
@@ -425,14 +500,18 @@ function ActivityItem({ activity }: { activity: any }) {
 
   return (
     <div className="flex items-start gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors">
-      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${colors[activity.type]}`}>
+      <div
+        className={`w-10 h-10 rounded-lg flex items-center justify-center ${colors[activity.type]}`}
+      >
         <Icon className="w-5 h-5" />
       </div>
       <div className="flex-1">
         <p className="font-medium text-gray-900">{activity.description}</p>
         <p className="text-sm text-gray-500">{activity.details}</p>
         <p className="text-xs text-gray-400 mt-1">
-          {format(new Date(activity.date), 'dd MMM yyyy à HH:mm', { locale: fr })}
+          {format(new Date(activity.date), 'dd MMM yyyy à HH:mm', {
+            locale: fr,
+          })}
         </p>
       </div>
     </div>
@@ -444,7 +523,7 @@ function DashboardSkeleton() {
     <div className="space-y-8 animate-pulse">
       <div className="h-8 bg-gray-200 rounded w-1/3"></div>
       <div className="grid grid-cols-4 gap-6">
-        {[1, 2, 3, 4].map(i => (
+        {[1, 2, 3, 4].map((i) => (
           <div key={i} className="h-32 bg-gray-200 rounded-2xl"></div>
         ))}
       </div>

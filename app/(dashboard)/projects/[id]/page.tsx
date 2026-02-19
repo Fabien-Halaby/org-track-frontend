@@ -3,15 +3,16 @@
 import { useState } from 'react';
 import { useProject, useDeleteProject, useActivateProject, useCompleteProject, useCancelProject } from '@/lib/hooks/useProjects';
 import { useIndicators } from '@/lib/hooks/useIndicators';
+import { useRole } from '@/lib/hooks/useRole';
 import { downloadPdf, downloadExcel } from '@/lib/api/download';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { format, isPast, isFuture, isToday, differenceInDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { 
-  ArrowLeft, 
-  Calendar, 
-  DollarSign, 
+import {
+  ArrowLeft,
+  Calendar,
+  DollarSign,
   Edit,
   TrendingUp,
   Plus,
@@ -24,47 +25,49 @@ import {
   XCircle,
   Clock,
   AlertCircle,
-  Info
+  Info,
 } from 'lucide-react';
 
 const statusConfig = {
-  draft: { 
-    label: 'Brouillon', 
+  draft: {
+    label: 'Brouillon',
     color: 'bg-gray-100 text-gray-700 border-gray-200',
     icon: Clock,
-    description: 'Projet en préparation'
+    description: 'Projet en préparation',
   },
-  active: { 
-    label: 'Actif', 
+  active: {
+    label: 'Actif',
     color: 'bg-green-100 text-green-700 border-green-200',
     icon: Play,
-    description: 'Projet en cours d\'exécution'
+    description: "Projet en cours d'exécution",
   },
-  completed: { 
-    label: 'Terminé', 
+  completed: {
+    label: 'Terminé',
     color: 'bg-blue-100 text-blue-700 border-blue-200',
     icon: CheckCircle,
-    description: 'Projet terminé avec succès'
+    description: 'Projet terminé avec succès',
   },
-  cancelled: { 
-    label: 'Annulé', 
+  cancelled: {
+    label: 'Annulé',
     color: 'bg-red-100 text-red-700 border-red-200',
     icon: XCircle,
-    description: 'Projet annulé'
+    description: 'Projet annulé',
   },
 };
 
 export default function ProjectDetailPage() {
   const params = useParams();
   const projectId = params.id as string;
-  
+
   const { data: project, isLoading: projectLoading } = useProject(projectId);
   const { data: indicators, isLoading: indicatorsLoading } = useIndicators(projectId);
   const deleteProject = useDeleteProject();
   const activateProject = useActivateProject();
   const completeProject = useCompleteProject();
   const cancelProject = useCancelProject();
-  
+
+  const { isAdmin, canWrite, canOnlyRead } = useRole();
+
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
@@ -105,7 +108,7 @@ export default function ProjectDetailPage() {
           setCancelReason('');
         },
         onError: (error) => setActionError(error.message),
-      }
+      },
     );
   };
 
@@ -125,24 +128,34 @@ export default function ProjectDetailPage() {
   const startDate = project.startDate ? new Date(project.startDate) : null;
   const endDate = project.endDate ? new Date(project.endDate) : null;
   const today = new Date();
-  
+
   const isStartToday = startDate && isToday(startDate);
   const isStartPassed = startDate && isPast(startDate) && !isToday(startDate);
   const isEndPassed = endDate && isPast(endDate) && !isToday(endDate);
   const isEndToday = endDate && isToday(endDate);
-  
-  const daysUntilStart = startDate && isFuture(startDate) 
-    ? differenceInDays(startDate, today) 
-    : null;
-  const daysUntilEnd = endDate && (isFuture(endDate) || isToday(endDate))
-    ? differenceInDays(endDate, today)
-    : null;
 
-  // Déterminer les actions disponibles
-  const canActivate = project.status === 'draft' && startDate && (isStartToday || isStartPassed);
-  const canComplete = project.status === 'active' && (isEndPassed || isEndToday);
-  const canCancel = ['draft', 'active'].includes(project.status);
+  const daysUntilStart =
+    startDate && isFuture(startDate) ? differenceInDays(startDate, today) : null;
+  const daysUntilEnd =
+    endDate && (isFuture(endDate) || isToday(endDate))
+      ? differenceInDays(endDate, today)
+      : null;
+
   const isTerminal = ['completed', 'cancelled'].includes(project.status);
+
+  // ✅ Actions selon rôle + état projet
+  const canActivate =
+    canWrite &&
+    project.status === 'draft' &&
+    startDate &&
+    (isStartToday || isStartPassed);
+  const canComplete =
+    canWrite && project.status === 'active' && (isEndPassed || isEndToday);
+  const canCancel =
+    canWrite && ['draft', 'active'].includes(project.status);
+  const canDelete =
+    isAdmin && (project.status === 'draft' || project.status === 'cancelled');
+  const canEdit = canWrite && !isTerminal;
 
   return (
     <div className="space-y-6">
@@ -159,11 +172,11 @@ export default function ProjectDetailPage() {
       {/* Erreur d'action */}
       {actionError && (
         <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
           <div>
             <p className="font-medium">Action impossible</p>
             <p className="text-sm">{actionError}</p>
-            <button 
+            <button
               onClick={() => setActionError(null)}
               className="text-sm underline mt-2 hover:text-red-800"
             >
@@ -179,7 +192,9 @@ export default function ProjectDetailPage() {
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
               <h1 className="text-2xl font-bold text-gray-900">{project.name}</h1>
-              <span className={`px-3 py-1 rounded-full text-sm font-medium border ${status.color} flex items-center gap-1.5`}>
+              <span
+                className={`px-3 py-1 rounded-full text-sm font-medium border ${status.color} flex items-center gap-1.5`}
+              >
                 <StatusIcon className="w-4 h-4" />
                 {status.label}
               </span>
@@ -189,10 +204,11 @@ export default function ProjectDetailPage() {
               <p className="text-gray-500 mt-2 text-sm">{project.description}</p>
             )}
           </div>
-          
+
           {/* Boutons d'action */}
           <div className="flex items-center gap-1">
-            {!isTerminal && (
+            {/* ✅ Edit : admin et manager uniquement, projet non terminal */}
+            {canEdit && (
               <Link
                 href={`/projects/${projectId}/edit`}
                 className="p-2 text-gray-600 hover:text-primary hover:bg-blue-50 rounded-lg transition-colors"
@@ -202,6 +218,7 @@ export default function ProjectDetailPage() {
               </Link>
             )}
 
+            {/* Téléchargements : tous les rôles */}
             <button
               onClick={handleDownloadPdf}
               className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -218,12 +235,16 @@ export default function ProjectDetailPage() {
               <FileSpreadsheet className="w-5 h-5" />
             </button>
 
-            {/* SUPPRIMER: uniquement pour draft ou cancelled */}
-            {(project.status === 'draft' || project.status === 'cancelled') && (
+            {/* ✅ Supprimer : admin uniquement */}
+            {canDelete && (
               <button
                 onClick={() => setShowDeleteConfirm(true)}
                 className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                title={project.status === 'cancelled' ? 'Supprimer définitivement' : 'Supprimer'}
+                title={
+                  project.status === 'cancelled'
+                    ? 'Supprimer définitivement'
+                    : 'Supprimer'
+                }
               >
                 <Trash2 className="w-5 h-5" />
               </button>
@@ -231,88 +252,85 @@ export default function ProjectDetailPage() {
           </div>
         </div>
 
-        {/* Alertes de workflow */}
-        <div className="space-y-3 mb-6">
-          {project.status === 'draft' && startDate && isStartPassed && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
-              <Clock className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className="font-medium text-amber-800">Date de début dépassée</p>
-                <p className="text-sm text-amber-700">
-                  Le projet devait démarrer le {format(startDate, 'dd MMMM yyyy', { locale: fr })}.
-                  Activez-le maintenant ou modifiez les dates.
-                </p>
-                <button
-                  onClick={handleActivate}
-                  disabled={activateProject.isPending}
-                  className="mt-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
-                >
-                  {activateProject.isPending ? 'Activation...' : 'Activer maintenant'}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {project.status === 'active' && endDate && (isEndToday || isEndPassed) && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
-              <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className="font-medium text-blue-800">Date de fin atteinte</p>
-                <p className="text-sm text-blue-700">
-                  Le projet se termine {isEndToday ? 'aujourd\'hui' : `le ${format(endDate, 'dd MMMM yyyy', { locale: fr })}`}.
-                  Marquez-le comme terminé si toutes les livrables sont OK.
-                </p>
-                <button
-                  onClick={handleComplete}
-                  disabled={completeProject.isPending}
-                  className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
-                >
-                  {completeProject.isPending ? 'Clôture...' : 'Marquer comme terminé'}
-                </button>
-              </div>
-            </div>
-          )}
-
+        {/* Alertes de workflow — visibles seulement pour admin/manager */}
+        {canWrite && (
+          <div className="space-y-3 mb-6">
             {project.status === 'draft' && startDate && isStartPassed && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
-              <Clock className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className="font-medium text-amber-800">Date de début dépassée</p>
-                <p className="text-sm text-amber-700">
-                  Le projet devait démarrer le {format(startDate, 'dd MMMM yyyy', { locale: fr })}.
-                  {"En l'activant maintenant, la date sera ajustée à aujourd'hui."}
-                </p>
-                <button
-                  onClick={handleActivate}
-                  disabled={activateProject.isPending}
-                  className="mt-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
-                >
-                  {activateProject.isPending ? 'Activation...' : 'Activer maintenant (date ajustée)'}
-                </button>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
+                <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-medium text-amber-800">Date de début dépassée</p>
+                  <p className="text-sm text-amber-700">
+                    Le projet devait démarrer le{' '}
+                    {format(startDate, 'dd MMMM yyyy', { locale: fr })}.{' '}
+                    {"En l'activant maintenant, la date sera ajustée à aujourd'hui."}
+                  </p>
+                  <button
+                    onClick={handleActivate}
+                    disabled={activateProject.isPending}
+                    className="mt-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {activateProject.isPending
+                      ? 'Activation...'
+                      : 'Activer maintenant (date ajustée)'}
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {project.status === 'draft' && daysUntilStart && daysUntilStart > 0 && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
-              <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className="font-medium text-blue-800">Démarrage programmé</p>
-                <p className="text-sm text-blue-700">
-                  Le projet est prévu pour le {format(startDate!, 'dd MMMM yyyy', { locale: fr })}.
-                  {"Vous pouvez l'activer maintenant pour démarrer plus tôt."}
-                </p>
-                <button
-                  onClick={handleActivate}
-                  disabled={activateProject.isPending}
-                  className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
-                >
-                  {activateProject.isPending ? 'Activation...' : 'Démarrer maintenant (avance le projet)'}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+            {project.status === 'active' &&
+              endDate &&
+              (isEndToday || isEndPassed) && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-medium text-blue-800">Date de fin atteinte</p>
+                    <p className="text-sm text-blue-700">
+                      Le projet se termine{' '}
+                      {isEndToday
+                        ? "aujourd'hui"
+                        : `le ${format(endDate, 'dd MMMM yyyy', { locale: fr })}`}
+                      . Marquez-le comme terminé si toutes les livrables sont OK.
+                    </p>
+                    <button
+                      onClick={handleComplete}
+                      disabled={completeProject.isPending}
+                      className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      {completeProject.isPending
+                        ? 'Clôture...'
+                        : 'Marquer comme terminé'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+            {project.status === 'draft' &&
+              daysUntilStart &&
+              daysUntilStart > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
+                  <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-medium text-blue-800">Démarrage programmé</p>
+                    <p className="text-sm text-blue-700">
+                      Le projet est prévu pour le{' '}
+                      {format(startDate!, 'dd MMMM yyyy', { locale: fr })}.{' '}
+                      {"Vous pouvez l'activer maintenant pour démarrer plus tôt."}
+                    </p>
+                    <button
+                      onClick={handleActivate}
+                      disabled={activateProject.isPending}
+                      className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      {activateProject.isPending
+                        ? 'Activation...'
+                        : 'Démarrer maintenant (avance le projet)'}
+                    </button>
+                  </div>
+                </div>
+              )}
+          </div>
+        )}
 
         {/* Infos projet */}
         <div className="grid grid-cols-3 gap-4 mb-6">
@@ -327,9 +345,11 @@ export default function ProjectDetailPage() {
               </p>
             </div>
           )}
-          
+
           {startDate && (
-            <div className={`rounded-lg p-4 ${isStartPassed ? 'bg-green-50' : 'bg-gray-50'}`}>
+            <div
+              className={`rounded-lg p-4 ${isStartPassed ? 'bg-green-50' : 'bg-gray-50'}`}
+            >
               <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
                 <Calendar className="w-4 h-4" />
                 Début
@@ -337,12 +357,24 @@ export default function ProjectDetailPage() {
               <p className="text-lg font-semibold text-gray-900">
                 {format(startDate, 'dd MMM yyyy', { locale: fr })}
               </p>
-              {isStartToday && <span className="text-xs text-green-600 font-medium">Aujourd&apos;hui</span>}
+              {isStartToday && (
+                <span className="text-xs text-green-600 font-medium">
+                  Aujourd&apos;hui
+                </span>
+              )}
             </div>
           )}
-          
+
           {endDate && (
-            <div className={`rounded-lg p-4 ${isEndPassed ? 'bg-blue-50' : daysUntilEnd && daysUntilEnd <= 7 ? 'bg-amber-50' : 'bg-gray-50'}`}>
+            <div
+              className={`rounded-lg p-4 ${
+                isEndPassed
+                  ? 'bg-blue-50'
+                  : daysUntilEnd && daysUntilEnd <= 7
+                  ? 'bg-amber-50'
+                  : 'bg-gray-50'
+              }`}
+            >
               <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
                 <Calendar className="w-4 h-4" />
                 Fin prévue
@@ -351,16 +383,21 @@ export default function ProjectDetailPage() {
                 {format(endDate, 'dd MMM yyyy', { locale: fr })}
               </p>
               {daysUntilEnd && daysUntilEnd > 0 && (
-                <span className={`text-xs font-medium ${daysUntilEnd <= 7 ? 'text-amber-600' : 'text-gray-500'}`}>
-                  {daysUntilEnd} jour{daysUntilEnd > 1 ? 's' : ''} restant{daysUntilEnd > 1 ? 's' : ''}
+                <span
+                  className={`text-xs font-medium ${
+                    daysUntilEnd <= 7 ? 'text-amber-600' : 'text-gray-500'
+                  }`}
+                >
+                  {daysUntilEnd} jour{daysUntilEnd > 1 ? 's' : ''} restant
+                  {daysUntilEnd > 1 ? 's' : ''}
                 </span>
               )}
             </div>
           )}
         </div>
 
-        {/* Actions de workflow */}
-        {!isTerminal && (
+        {/* ✅ Actions de workflow : admin et manager uniquement */}
+        {!isTerminal && canWrite && (
           <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-100">
             {canActivate && (
               <button
@@ -404,7 +441,11 @@ export default function ProjectDetailPage() {
           <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
             <TrendingUp className="w-5 h-5" />
             Indicateurs
-            {indicatorsLoading && <span className="text-sm font-normal text-gray-400">(chargement...)</span>}
+            {indicatorsLoading && (
+              <span className="text-sm font-normal text-gray-400">
+                (chargement...)
+              </span>
+            )}
           </h2>
           {project.status === 'active' && (
             <Link
@@ -417,26 +458,42 @@ export default function ProjectDetailPage() {
         </div>
 
         {project.status !== 'active' && (
-          <div className={`rounded-lg p-4 mb-4 flex items-start gap-3 ${
-            project.status === 'draft' ? 'bg-amber-50 border border-amber-200' : 'bg-gray-50 border border-gray-200'
-          }`}>
-            <AlertCircle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
-              project.status === 'draft' ? 'text-amber-600' : 'text-gray-500'
-            }`} />
+          <div
+            className={`rounded-lg p-4 mb-4 flex items-start gap-3 ${
+              project.status === 'draft'
+                ? 'bg-amber-50 border border-amber-200'
+                : 'bg-gray-50 border border-gray-200'
+            }`}
+          >
+            <AlertCircle
+              className={`w-5 h-5 shrink-0 mt-0.5 ${
+                project.status === 'draft' ? 'text-amber-600' : 'text-gray-500'
+              }`}
+            />
             <div>
-              <p className={`font-medium ${
-                project.status === 'draft' ? 'text-amber-800' : 'text-gray-700'
-              }`}>
-                Projet {project.status === 'draft' ? 'en brouillon' : project.status === 'completed' ? 'terminé' : 'annulé'}
+              <p
+                className={`font-medium ${
+                  project.status === 'draft' ? 'text-amber-800' : 'text-gray-700'
+                }`}
+              >
+                Projet{' '}
+                {project.status === 'draft'
+                  ? 'en brouillon'
+                  : project.status === 'completed'
+                  ? 'terminé'
+                  : 'annulé'}
               </p>
-              <p className={`text-sm ${
-                project.status === 'draft' ? 'text-amber-700' : 'text-gray-600'
-              }`}>
-                {project.status === 'draft' 
+              <p
+                className={`text-sm ${
+                  project.status === 'draft' ? 'text-amber-700' : 'text-gray-600'
+                }`}
+              >
+                {project.status === 'draft'
                   ? 'Activez le projet pour pouvoir créer des indicateurs et suivre vos performances.'
                   : 'Ce projet est clôturé. Les indicateurs ne peuvent plus être modifiés.'}
               </p>
-              {project.status === 'draft' && (
+              {/* ✅ Bouton activer dans le bloc indicateurs : admin/manager seulement */}
+              {project.status === 'draft' && canWrite && (
                 <button
                   onClick={handleActivate}
                   disabled={activateProject.isPending}
@@ -457,22 +514,24 @@ export default function ProjectDetailPage() {
         ) : hasIndicators ? (
           <div className="space-y-3">
             {indicators.map((indicator) => (
-              <Link 
-                key={indicator.id} 
+              <Link
+                key={indicator.id}
                 href={`/indicators/${indicator.id}`}
                 className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 <div>
                   <h3 className="font-medium text-gray-900">{indicator.name}</h3>
                   <p className="text-sm text-gray-500">
-                    {indicator.values?.length || 0} valeur(s) • 
-                    {indicator.targetValue && ` Objectif: ${indicator.targetValue}`}
+                    {indicator.values?.length || 0} valeur(s) •{' '}
+                    {indicator.targetValue &&
+                      ` Objectif: ${indicator.targetValue}`}
                   </p>
                 </div>
                 <TrendingUp className="w-5 h-5 text-gray-400" />
               </Link>
             ))}
-            {project.status === 'active' && (
+            {/* ✅ Ajouter indicateur : admin et manager uniquement */}
+            {project.status === 'active' && canWrite && (
               <Link
                 href={`/indicators/new?project=${project.id}`}
                 className="flex items-center justify-center gap-2 p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary hover:text-primary transition-colors text-gray-500"
@@ -486,20 +545,31 @@ export default function ProjectDetailPage() {
           <div className="text-center py-8">
             <p className="text-gray-500 mb-4">Aucun indicateur</p>
             {project.status === 'active' ? (
-              <Link 
-                href={`/indicators/new?project=${project.id}`}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-                Créer un indicateur
-              </Link>
+              canWrite ? (
+                <Link
+                  href={`/indicators/new?project=${project.id}`}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Créer un indicateur
+                </Link>
+              ) : (
+                <p className="text-sm text-gray-400">
+                  {canOnlyRead
+                    ? 'Aucun indicateur à afficher pour ce projet.'
+                    : 'Contactez un manager pour créer des indicateurs.'}
+                </p>
+              )
             ) : project.status === 'draft' ? (
               <p className="text-sm text-amber-600">
-                Activez le projet pour créer des indicateurs
+                {canWrite
+                  ? 'Activez le projet pour créer des indicateurs'
+                  : 'Le projet est en brouillon'}
               </p>
             ) : (
               <p className="text-sm text-gray-400">
-                Projet {project.status === 'completed' ? 'terminé' : 'annulé'}
+                Projet{' '}
+                {project.status === 'completed' ? 'terminé' : 'annulé'}
               </p>
             )}
           </div>
@@ -513,11 +583,14 @@ export default function ProjectDetailPage() {
             <div className="flex items-center gap-3 text-red-600 mb-4">
               <AlertTriangle className="w-6 h-6" />
               <h3 className="text-lg font-semibold">
-                {project.status === 'cancelled' ? 'Supprimer le projet annulé ?' : 'Supprimer le projet ?'}
+                {project.status === 'cancelled'
+                  ? 'Supprimer le projet annulé ?'
+                  : 'Supprimer le projet ?'}
               </h3>
             </div>
             <p className="text-gray-600 mb-6">
-              <strong>&quot;{project.name}&quot;</strong> sera définitivement supprimé avec tous ses indicateurs.
+              <strong>&quot;{project.name}&quot;</strong> sera définitivement
+              supprimé avec tous ses indicateurs.
               {project.status === 'cancelled' && (
                 <span className="block mt-2 text-amber-600 text-sm">
                   Ce projet est déjà annulé. Cette action est irréversible.
@@ -530,7 +603,9 @@ export default function ProjectDetailPage() {
                 disabled={deleteProject.isPending}
                 className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 rounded-lg disabled:opacity-50"
               >
-                {deleteProject.isPending ? 'Suppression...' : 'Supprimer définitivement'}
+                {deleteProject.isPending
+                  ? 'Suppression...'
+                  : 'Supprimer définitivement'}
               </button>
               <button
                 onClick={() => setShowDeleteConfirm(false)}
@@ -552,7 +627,9 @@ export default function ProjectDetailPage() {
               <h3 className="text-lg font-semibold">Annuler le projet ?</h3>
             </div>
             <p className="text-gray-600 mb-4">
-              Cette action est irréversible. Le projet <strong>&quot;{project.name}&quot;</strong> sera marqué comme annulé.
+              Cette action est irréversible. Le projet{' '}
+              <strong>&quot;{project.name}&quot;</strong> sera marqué comme
+              annulé.
             </p>
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -572,7 +649,9 @@ export default function ProjectDetailPage() {
                 disabled={cancelProject.isPending}
                 className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 rounded-lg disabled:opacity-50"
               >
-                {cancelProject.isPending ? 'Annulation...' : 'Confirmer l\'annulation'}
+                {cancelProject.isPending
+                  ? 'Annulation...'
+                  : "Confirmer l'annulation"}
               </button>
               <button
                 onClick={() => {

@@ -2,20 +2,12 @@
 
 import { useState } from 'react';
 import { Project, useProjects, useDeleteProject } from '@/lib/hooks/useProjects';
+import { useRole } from '@/lib/hooks/useRole';
 import Link from 'next/link';
-import { 
-  Plus, 
-  Search, 
-  Filter,
-  MoreHorizontal,
-  Calendar,
-  DollarSign,
-  CheckCircle2,
-  XCircle,
-  FileText,
-  Edit,
-  Trash2,
-  AlertTriangle,
+import {
+  Plus, Search, Filter, MoreHorizontal, Calendar,
+  DollarSign, CheckCircle2, XCircle, FileText,
+  Edit, Trash2, AlertTriangle,
 } from 'lucide-react';
 
 const statusLabels = {
@@ -28,6 +20,7 @@ const statusLabels = {
 export default function ProjectsPage() {
   const [filter, setFilter] = useState<string>('');
   const { data: projects, isLoading } = useProjects(filter || undefined);
+  const { canWrite } = useRole(); // ← hook rôle
 
   if (isLoading) {
     return <div className="flex items-center justify-center h-64">Chargement...</div>;
@@ -42,13 +35,16 @@ export default function ProjectsPage() {
             {projects?.length || 0} projet{projects?.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <Link
-          href="/projects/new"
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Nouveau projet
-        </Link>
+        {/* Caché pour agent et observer */}
+        {canWrite && (
+          <Link
+            href="/projects/new"
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Nouveau projet
+          </Link>
+        )}
       </div>
 
       <div className="flex items-center gap-4 bg-white p-4 rounded-xl border border-gray-200">
@@ -80,16 +76,15 @@ export default function ProjectsPage() {
         {projects?.map((project) => (
           <ProjectCard key={project.id} project={project} />
         ))}
-        
+
         {projects?.length === 0 && (
           <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
             <p className="text-gray-500">Aucun projet trouvé</p>
-            <Link
-              href="/projects/new"
-              className="text-primary hover:underline mt-2 inline-block"
-            >
-              Créer votre premier projet
-            </Link>
+            {canWrite && (
+              <Link href="/projects/new" className="text-primary hover:underline mt-2 inline-block">
+                Créer votre premier projet
+              </Link>
+            )}
           </div>
         )}
       </div>
@@ -101,7 +96,8 @@ function ProjectCard({ project }: { project: Project }) {
   const [showMenu, setShowMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const deleteProject = useDeleteProject();
-  
+  const { isAdmin, canWrite } = useRole(); // ← hook rôle
+
   const status = statusLabels[project.status];
   const StatusIcon = status.icon;
 
@@ -109,6 +105,9 @@ function ProjectCard({ project }: { project: Project }) {
     deleteProject.mutate(project.id);
     setShowDeleteConfirm(false);
   };
+
+  // Menu visible seulement si on peut faire quelque chose
+  const showActions = canWrite || isAdmin;
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow">
@@ -121,7 +120,7 @@ function ProjectCard({ project }: { project: Project }) {
               {status.label}
             </span>
           </div>
-          
+
           {project.description && (
             <p className="text-gray-600 text-sm mb-4 line-clamp-2">{project.description}</p>
           )}
@@ -141,42 +140,45 @@ function ProjectCard({ project }: { project: Project }) {
             )}
           </div>
         </Link>
-        
-        {/* Menu actions */}
-        <div className="relative">
-          <button
-            onClick={() => setShowMenu(!showMenu)}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <MoreHorizontal className="w-5 h-5 text-gray-400" />
-          </button>
-          
-          {showMenu && (
-            <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
-              <Link
-                href={`/projects/${project.id}/edit`}
-                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                onClick={() => setShowMenu(false)}
-              >
-                <Edit className="w-4 h-4" />
-                Modifier
-              </Link>
-              <button
-                onClick={() => {
-                  setShowMenu(false);
-                  setShowDeleteConfirm(true);
-                }}
-                className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left"
-              >
-                <Trash2 className="w-4 h-4" />
-                Supprimer
-              </button>
-            </div>
-          )}
-        </div>
+
+        {/* Menu actions masqué pour observer */}
+        {showActions && (
+          <div className="relative">
+            <button
+              onClick={() => setShowMenu(!showMenu)}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <MoreHorizontal className="w-5 h-5 text-gray-400" />
+            </button>
+
+            {showMenu && (
+              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                {canWrite && (
+                  <Link
+                    href={`/projects/${project.id}/edit`}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    onClick={() => setShowMenu(false)}
+                  >
+                    <Edit className="w-4 h-4" />
+                    Modifier
+                  </Link>
+                )}
+                {/* Suppression réservée à l'admin */}
+                {isAdmin && (
+                  <button
+                    onClick={() => { setShowMenu(false); setShowDeleteConfirm(true); }}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Supprimer
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Modal confirmation delete */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
@@ -185,14 +187,14 @@ function ProjectCard({ project }: { project: Project }) {
               <h3 className="text-lg font-semibold">Confirmer la suppression</h3>
             </div>
             <p className="text-gray-600 mb-6">
-              Êtes-vous sûr de vouloir supprimer le projet <strong>"{project.name}"</strong> ? 
+              Êtes-vous sûr de vouloir supprimer le projet <strong>&quot;{project.name}&quot;</strong> ?
               Cette action est irréversible.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={handleDelete}
                 disabled={deleteProject.isPending}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 rounded-lg transition-colors disabled:opacity-50"
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 rounded-lg disabled:opacity-50"
               >
                 {deleteProject.isPending ? 'Suppression...' : 'Supprimer'}
               </button>
