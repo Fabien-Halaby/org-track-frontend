@@ -20,7 +20,6 @@ export function useInvitations() {
 
 export function useCreateInvitation() {
   const queryClient = useQueryClient();
-  
   return useMutation({
     mutationFn: async (data: CreateInvitationData) => {
       const res = await api.post('/invitations', data);
@@ -34,7 +33,6 @@ export function useCreateInvitation() {
 
 export function useRevokeInvitation() {
   const queryClient = useQueryClient();
-  
   return useMutation({
     mutationFn: async (id: string) => {
       await api.delete(`/invitations/${id}`);
@@ -64,6 +62,31 @@ export function useJoin() {
       password: string;
     }) => {
       const res = await api.post('/auth/join', data);
+      return res.data;
+    },
+  });
+}
+
+// ← manquait ici
+export function useCheckEmail() {
+  return useMutation({
+    mutationFn: async (email: string) => {
+      const res = await api.post('/auth/check-email', { email });
+      return res.data as { exists: boolean; firstName?: string; lastName?: string };
+    },
+  });
+}
+
+export function useJoinExisting() {
+  return useMutation({
+    mutationFn: async (data: {
+      token: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+      password: string;
+    }) => {
+      const res = await api.post('/auth/join-existing', data);
       return res.data;
     },
   });

@@ -14,19 +14,29 @@ interface Organization {
   name: string;
 }
 
+// Compte renvoyé par le backend quand multipleAccounts: true
+export interface PendingAccount {
+  userId: string;
+  organizationId: string;
+  organizationName: string;
+  role: string;
+}
+
 interface AuthState {
   user: User | null;
   organization: Organization | null;
   accessToken: string | null;
   refreshToken: string | null;
   isLoading: boolean;
-  
-  setAuth: (data: { 
-    user: User; 
-    organization: Organization; 
-    accessToken: string; 
-    refreshToken: string 
+  pendingAccounts: PendingAccount[]; // ← liste en attente de sélection
+
+  setAuth: (data: {
+    user: User;
+    organization: Organization;
+    accessToken: string;
+    refreshToken: string;
   }) => void;
+  setPendingAccounts: (accounts: PendingAccount[]) => void;
   updateTokens: (accessToken: string, refreshToken: string) => void;
   logout: () => void;
   setLoading: (loading: boolean) => void;
@@ -40,32 +50,39 @@ export const useAuthStore = create<AuthState>()(
       accessToken: null,
       refreshToken: null,
       isLoading: true,
-      
-      setAuth: (data) => set({
-        user: data.user,
-        organization: data.organization,
-        accessToken: data.accessToken,
-        refreshToken: data.refreshToken,
-        isLoading: false,
-      }),
-      
-      updateTokens: (accessToken, refreshToken) => set({
-        accessToken,
-        refreshToken,
-      }),
-      
-      logout: () => set({
-        user: null,
-        organization: null,
-        accessToken: null,
-        refreshToken: null,
-        isLoading: false,
-      }),
-      
+      pendingAccounts: [],
+
+      setAuth: (data) =>
+        set({
+          user: data.user,
+          organization: data.organization,
+          accessToken: data.accessToken,
+          refreshToken: data.refreshToken,
+          isLoading: false,
+          pendingAccounts: [],
+        }),
+
+      setPendingAccounts: (accounts) =>
+        set({
+          pendingAccounts: accounts,
+          isLoading: false,
+        }),
+
+      updateTokens: (accessToken, refreshToken) =>
+        set({ accessToken, refreshToken }),
+
+      logout: () =>
+        set({
+          user: null,
+          organization: null,
+          accessToken: null,
+          refreshToken: null,
+          isLoading: false,
+          pendingAccounts: [],
+        }),
+
       setLoading: (loading) => set({ isLoading: loading }),
     }),
-    {
-      name: 'auth-storage',
-    }
+    { name: 'auth-storage' }
   )
 );

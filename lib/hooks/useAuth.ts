@@ -21,11 +21,33 @@ interface RegisterData {
 
 export function useLogin() {
   const router = useRouter();
-  const setAuth = useAuthStore((state) => state.setAuth);
+  const { setAuth, setPendingAccounts } = useAuthStore();
 
   return useMutation({
     mutationFn: async (data: LoginData) => {
       const response = await api.post('/auth/login', data);
+      return response.data;
+    },
+    onSuccess: (data) => {
+      if (data.multipleAccounts) {
+        // Stocker la liste et rediriger vers la page de sélection
+        setPendingAccounts(data.accounts);
+        router.push('/select-account');
+      } else {
+        setAuth(data);
+        router.push('/dashboard');
+      }
+    },
+  });
+}
+
+export function useSelectAccount() {
+  const router = useRouter();
+  const { setAuth } = useAuthStore();
+
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await api.post('/auth/select-account', { userId });
       return response.data;
     },
     onSuccess: (data) => {
@@ -58,7 +80,7 @@ export function useLogout() {
 
   return useMutation({
     mutationFn: async () => {
-      await api.post('/auth/logout');
+      // pas d'appel API nécessaire, on vide juste le store
     },
     onSuccess: () => {
       logout();
