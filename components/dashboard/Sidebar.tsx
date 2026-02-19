@@ -8,7 +8,8 @@ import {
   FolderKanban, 
   BarChart3, 
   Settings,
-  LogOut
+  LogOut,
+  UserPlus
 } from 'lucide-react';
 import { useLogout } from '@/lib/hooks/useAuth';
 
@@ -16,12 +17,11 @@ const menuItems = [
   { href: '/dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
   { href: '/projects', label: 'Projets', icon: FolderKanban },
   { href: '/indicators', label: 'Indicateurs', icon: BarChart3 },
-  { href: '/settings', label: 'Paramètres', icon: Settings },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { organization } = useAuthStore();
+  const { user, organization } = useAuthStore();
   const logout = useLogout();
 
   return (
@@ -60,6 +60,33 @@ export function Sidebar() {
             </Link>
           );
         })}
+
+        {/* Menu Invitations - visible pour admin et manager uniquement */}
+        {user?.role !== 'agent' && (
+          <Link
+            href="/invitations"
+            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+              pathname === '/invitations'
+                ? 'bg-blue-50 text-primary font-medium' 
+                : 'text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <UserPlus className="w-5 h-5" />
+            Invitations
+          </Link>
+        )}
+
+        <Link
+          href="/settings"
+          className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+            pathname === '/settings'
+              ? 'bg-blue-50 text-primary font-medium' 
+              : 'text-gray-600 hover:bg-gray-50'
+          }`}
+        >
+          <Settings className="w-5 h-5" />
+          Paramètres
+        </Link>
       </nav>
 
       <div className="p-4 border-t border-gray-200">

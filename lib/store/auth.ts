@@ -6,7 +6,7 @@ interface User {
   email: string;
   firstName: string;
   lastName: string;
-  role: 'admin' | 'manager' | 'agent';
+  role: 'admin' | 'manager' | 'agent' | 'observer';
 }
 
 interface Organization {
