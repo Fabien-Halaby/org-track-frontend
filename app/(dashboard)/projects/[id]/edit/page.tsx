@@ -1,7 +1,396 @@
+// 'use client';
+
+// import { useEffect, useState } from 'react';
+// import { useForm, useWatch } from 'react-hook-form';
+// import { zodResolver } from '@hookform/resolvers/zod';
+// import * as z from 'zod';
+// import { useProject, useUpdateProject } from '@/lib/hooks/useProjects';
+// import { useParams, useRouter } from 'next/navigation';
+// import Link from 'next/link';
+// import { ArrowLeft, AlertCircle, Calendar, Info } from 'lucide-react';
+// import { format, addDays, isBefore, startOfDay, parseISO } from 'date-fns';
+// import { fr } from 'date-fns/locale';
+
+// // Schéma de validation dynamique selon le statut
+// const getProjectSchema = (currentStatus: string) => z.object({
+//   name: z.string().min(2, 'Nom requis (min 2 caractères)'),
+//   description: z.string().optional(),
+//   status: z.enum(['draft', 'active', 'completed', 'cancelled']),
+//   budget: z.string().optional(),
+//   startDate: z.string().optional(),
+//   endDate: z.string().optional(),
+// }).refine(
+//   (data) => {
+//     // Validation: date fin > date début
+//     if (data.startDate && data.endDate) {
+//       return data.endDate > data.startDate;
+//     }
+//     return true;
+//   },
+//   {
+//     message: 'La date de fin doit être après la date de début',
+//     path: ['endDate'],
+//   }
+// ).refine(
+//   (data) => {
+//     // Si on essaie d'activer, il faut une date de début
+//     if (data.status === 'active' && !data.startDate) {
+//       return false;
+//     }
+//     return true;
+//   },
+//   {
+//     message: 'Un projet actif doit avoir une date de début',
+//     path: ['startDate'],
+//   }
+// );
+
+// type ProjectForm = z.infer<ReturnType<typeof getProjectSchema>>;
+
+// const statusOptions = [
+//   { value: 'draft', label: '📝 Brouillon', description: 'Projet en préparation' },
+//   { value: 'active', label: '🚀 Actif', description: 'En cours d\'exécution' },
+//   { value: 'completed', label: '✅ Terminé', description: 'Projet terminé' },
+//   { value: 'cancelled', label: '❌ Annulé', description: 'Projet annulé' },
+// ];
+
+// const statusTransitions: Record<string, string[]> = {
+//   draft: ['active', 'cancelled', 'draft'], // peut rester draft
+//   active: ['completed', 'cancelled', 'active'], // peut rester active
+//   completed: ['completed'], // terminal
+//   cancelled: ['cancelled'], // terminal
+// };
+
+// export default function EditProjectPage() {
+//   const params = useParams();
+//   const router = useRouter();
+//   const projectId = params.id as string;
+  
+//   const { data: project, isLoading } = useProject(projectId);
+//   const updateProject = useUpdateProject();
+//   const [apiError, setApiError] = useState<string | null>(null);
+  
+//   const {
+//     register,
+//     handleSubmit,
+//     reset,
+//     watch,
+//     setValue,
+//     formState: { errors, isDirty },
+//   } = useForm<ProjectForm>({
+//     resolver: zodResolver(getProjectSchema(project?.status || 'draft')),
+//     defaultValues: {
+//       name: '',
+//       description: '',
+//       status: 'draft',
+//       budget: '',
+//       startDate: '',
+//       endDate: '',
+//     },
+//   });
+
+//   const currentStatus = watch('status');
+//   const startDate = watch('startDate');
+//   const endDate = watch('endDate');
+
+//   // Pré-remplir le formulaire
+//   useEffect(() => {
+//     if (project && !isLoading) {
+//       reset({
+//         name: project.name,
+//         description: project.description || '',
+//         status: project.status,
+//         budget: project.budget?.toString() || '',
+//         startDate: project.startDate ? project.startDate.split('T')[0] : '',
+//         endDate: project.endDate ? project.endDate.split('T')[0] : '',
+//       });
+//     }
+//   }, [project, isLoading, reset]);
+
+//   // Auto-ajuster la date de fin si nécessaire
+//   useEffect(() => {
+//     if (startDate && endDate && endDate <= startDate) {
+//       const newEndDate = format(addDays(new Date(startDate), 1), 'yyyy-MM-dd');
+//       setValue('endDate', newEndDate);
+//     }
+//   }, [startDate, endDate, setValue]);
+
+//   // Calculer les statuts disponibles
+//   const availableStatuses = project ? statusTransitions[project.status] || [project.status] : [];
+
+//   // Vérifier si une transition est valide
+//   const isValidTransition = (newStatus: string) => {
+//     if (!project) return false;
+//     if (newStatus === project.status) return true;
+//     return availableStatuses.includes(newStatus);
+//   };
+
+//   const onSubmit = (data: ProjectForm) => {
+//     setApiError(null);
+
+//     // Vérifier la transition côté client
+//     if (!isValidTransition(data.status)) {
+//       setApiError(`Transition invalide: ${project?.status} → ${data.status}`);
+//       return;
+//     }
+
+//     updateProject.mutate(
+//       {
+//         id: projectId,
+//         data: {
+//           ...data,
+//           budget: data.budget ? parseFloat(data.budget) : undefined,
+//         },
+//       },
+//       {
+//         onSuccess: () => {
+//           router.push(`/projects/${projectId}`);
+//         },
+//         onError: (error) => {
+//           setApiError(error.message);
+//         },
+//       }
+//     );
+//   };
+
+//   // Calculer la date min pour le début
+//   const getMinStartDate = () => {
+//     if (!project?.startDate) return format(new Date(), 'yyyy-MM-dd');
+//     const projectStart = parseISO(project.startDate);
+//     const today = startOfDay(new Date());
+//     // Si le projet a déjà commencé, on ne peut pas reculer
+//     if (isBefore(projectStart, today)) {
+//       return format(projectStart, 'yyyy-MM-dd');
+//     }
+//     return format(today, 'yyyy-MM-dd');
+//   };
+
+//   if (isLoading) {
+//     return (
+//       <div className="flex items-center justify-center h-64">
+//         <div className="animate-pulse">Chargement...</div>
+//       </div>
+//     );
+//   }
+
+//   if (!project) {
+//     return (
+//       <div className="text-center py-12">
+//         <p className="text-gray-500">Projet non trouvé</p>
+//         <Link href="/projects" className="text-primary hover:underline mt-2 inline-block">
+//           Retour aux projets
+//         </Link>
+//       </div>
+//     );
+//   }
+
+//   const isTerminal = ['completed', 'cancelled'].includes(project.status);
+//   const currentStatusConfig = statusOptions.find(s => s.value === project.status);
+
+//   return (
+//     <div className="max-w-2xl">
+//       {/* Header */}
+//       <div className="flex items-center gap-4 mb-6">
+//         <Link
+//           href={`/projects/${projectId}`}
+//           className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+//         >
+//           <ArrowLeft className="w-4 h-4" />
+//           Retour
+//         </Link>
+//       </div>
+
+//       <div className="mb-6">
+//         <h1 className="text-2xl font-bold text-gray-900">Modifier le projet</h1>
+//         <div className="flex items-center gap-2 mt-2">
+//           <span className="text-gray-500">Statut actuel:</span>
+//           <span className="px-2 py-1 bg-gray-100 rounded text-sm font-medium">
+//             {currentStatusConfig?.label}
+//           </span>
+//         </div>
+//       </div>
+
+//       {/* Warning si terminal */}
+//       {isTerminal && (
+//         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 flex items-start gap-3">
+//           <Info className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+//           <div>
+//             <p className="font-medium text-amber-800">Projet {project.status === 'completed' ? 'terminé' : 'annulé'}</p>
+//             <p className="text-sm text-amber-700">
+//               Ce projet est en statut terminal. Seules les informations de base peuvent être modifiées.
+//             </p>
+//           </div>
+//         </div>
+//       )}
+
+//       {/* Erreur API */}
+//       {apiError && (
+//         <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-6 flex items-start gap-3">
+//           <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+//           <div>
+//             <p className="font-medium">Erreur</p>
+//             <p className="text-sm">{apiError}</p>
+//           </div>
+//         </div>
+//       )}
+
+//       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 bg-white rounded-xl border border-gray-200 p-6">
+        
+//         {/* Nom */}
+//         <div>
+//           <label className="block text-sm font-medium text-gray-700 mb-2">
+//             Nom du projet *
+//           </label>
+//           <input
+//             {...register('name')}
+//             disabled={isTerminal}
+//             className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none disabled:bg-gray-50 disabled:text-gray-500"
+//           />
+//           {errors.name && (
+//             <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+//               <AlertCircle className="w-4 h-4" />
+//               {errors.name.message}
+//             </p>
+//           )}
+//         </div>
+
+//         {/* Description */}
+//         <div>
+//           <label className="block text-sm font-medium text-gray-700 mb-2">
+//             Description
+//           </label>
+//           <textarea
+//             {...register('description')}
+//             rows={4}
+//             disabled={isTerminal}
+//             className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none resize-none disabled:bg-gray-50 disabled:text-gray-500"
+//           />
+//         </div>
+
+//         {/* Statut avec transitions validées */}
+//         <div>
+//           <label className="block text-sm font-medium text-gray-700 mb-2">
+//             Statut
+//           </label>
+//           <select
+//             {...register('status')}
+//             disabled={isTerminal}
+//             className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none disabled:bg-gray-50"
+//           >
+//             {statusOptions.map((option) => {
+//               const isAvailable = availableStatuses.includes(option.value);
+//               const isCurrent = project.status === option.value;
+//               return (
+//                 <option 
+//                   key={option.value} 
+//                   value={option.value}
+//                   disabled={!isAvailable}
+//                 >
+//                   {option.label} {isCurrent ? '(actuel)' : ''} {!isAvailable && '— indisponible'}
+//                 </option>
+//               );
+//             })}
+//           </select>
+//           <p className="text-sm text-gray-500 mt-1">
+//             {currentStatus === project.status 
+//               ? 'Aucun changement de statut' 
+//               : `Transition: ${currentStatusConfig?.label} → ${statusOptions.find(s => s.value === currentStatus)?.label}`}
+//           </p>
+//           {!isValidTransition(currentStatus) && currentStatus !== project.status && (
+//             <p className="mt-1 text-sm text-red-600">
+//               Cette transition n'est pas autorisée
+//             </p>
+//           )}
+//         </div>
+
+//         {/* Budget */}
+//         <div>
+//           <label className="block text-sm font-medium text-gray-700 mb-2">
+//             Budget (€)
+//           </label>
+//           <input
+//             type="number"
+//             {...register('budget')}
+//             disabled={isTerminal}
+//             className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none disabled:bg-gray-50 disabled:text-gray-500"
+//           />
+//         </div>
+
+//         {/* Dates */}
+//         <div className="grid grid-cols-2 gap-4">
+//           <div>
+//             <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+//               <Calendar className="w-4 h-4" />
+//               Date de début
+//               {currentStatus === 'active' && <span className="text-red-500">*</span>}
+//             </label>
+//             <input
+//               type="date"
+//               min={getMinStartDate()}
+//               {...register('startDate')}
+//               disabled={isTerminal || (project.status === 'active' && !!project.startDate)}
+//               className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none disabled:bg-gray-50 disabled:text-gray-500"
+//             />
+//             {errors.startDate && (
+//               <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+//                 <AlertCircle className="w-4 h-4" />
+//                 {errors.startDate.message}
+//               </p>
+//             )}
+//             {project.status === 'active' && project.startDate && (
+//               <p className="text-xs text-gray-500 mt-1">
+//                 Déjà démarré le {format(parseISO(project.startDate), 'dd/MM/yyyy', { locale: fr })}
+//               </p>
+//             )}
+//           </div>
+
+//           <div>
+//             <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+//               <Calendar className="w-4 h-4" />
+//               Date de fin
+//             </label>
+//             <input
+//               type="date"
+//               min={startDate ? format(addDays(new Date(startDate), 1), 'yyyy-MM-dd') : getMinStartDate()}
+//               {...register('endDate')}
+//               disabled={isTerminal}
+//               className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none disabled:bg-gray-50 disabled:text-gray-500"
+//             />
+//             {errors.endDate && (
+//               <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+//                 <AlertCircle className="w-4 h-4" />
+//                 {errors.endDate.message}
+//               </p>
+//             )}
+//           </div>
+//         </div>
+
+//         {/* Actions */}
+//         <div className="flex items-center gap-4 pt-4 border-t border-gray-100">
+//           <button
+//             type="submit"
+//             disabled={!isDirty || updateProject.isPending || !isValidTransition(currentStatus)}
+//             className="flex-1 bg-primary hover:bg-primary-dark text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+//           >
+//             {updateProject.isPending ? 'Enregistrement...' : 'Enregistrer les modifications'}
+//           </button>
+//           <Link
+//             href={`/projects/${projectId}`}
+//             className="px-6 py-3 text-gray-600 hover:text-gray-900"
+//           >
+//             Annuler
+//           </Link>
+//         </div>
+//       </form>
+//     </div>
+//   );
+// }
+
+
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useProject, useUpdateProject } from '@/lib/hooks/useProjects';
@@ -11,89 +400,56 @@ import { ArrowLeft, AlertCircle, Calendar, Info } from 'lucide-react';
 import { format, addDays, isBefore, startOfDay, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
-// Schéma de validation dynamique selon le statut
-const getProjectSchema = (currentStatus: string) => z.object({
-  name: z.string().min(2, 'Nom requis (min 2 caractères)'),
-  description: z.string().optional(),
-  status: z.enum(['draft', 'active', 'completed', 'cancelled']),
-  budget: z.string().optional(),
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
-}).refine(
-  (data) => {
-    // Validation: date fin > date début
-    if (data.startDate && data.endDate) {
-      return data.endDate > data.startDate;
-    }
-    return true;
-  },
-  {
-    message: 'La date de fin doit être après la date de début',
-    path: ['endDate'],
-  }
-).refine(
-  (data) => {
-    // Si on essaie d'activer, il faut une date de début
-    if (data.status === 'active' && !data.startDate) {
-      return false;
-    }
-    return true;
-  },
-  {
-    message: 'Un projet actif doit avoir une date de début',
-    path: ['startDate'],
-  }
-);
+const getSchema = (currentStatus: string) =>
+  z.object({
+    name: z.string().min(2, 'Nom requis'),
+    description: z.string().optional(),
+    status: z.enum(['draft', 'active', 'completed', 'cancelled']),
+    budget: z.string().optional(),
+    startDate: z.string().optional(),
+    endDate: z.string().optional(),
+  })
+  .refine(d => !(d.startDate && d.endDate && d.endDate <= d.startDate), {
+    message: 'La date de fin doit être après la date de début', path: ['endDate'],
+  })
+  .refine(d => !(d.status === 'active' && !d.startDate), {
+    message: 'Un projet actif doit avoir une date de début', path: ['startDate'],
+  });
 
-type ProjectForm = z.infer<ReturnType<typeof getProjectSchema>>;
+type ProjectForm = z.infer<ReturnType<typeof getSchema>>;
 
 const statusOptions = [
-  { value: 'draft', label: '📝 Brouillon', description: 'Projet en préparation' },
-  { value: 'active', label: '🚀 Actif', description: 'En cours d\'exécution' },
-  { value: 'completed', label: '✅ Terminé', description: 'Projet terminé' },
-  { value: 'cancelled', label: '❌ Annulé', description: 'Projet annulé' },
+  { value: 'draft',     label: 'Brouillon' },
+  { value: 'active',    label: 'Actif' },
+  { value: 'completed', label: 'Terminé' },
+  { value: 'cancelled', label: 'Annulé' },
 ];
 
 const statusTransitions: Record<string, string[]> = {
-  draft: ['active', 'cancelled', 'draft'], // peut rester draft
-  active: ['completed', 'cancelled', 'active'], // peut rester active
-  completed: ['completed'], // terminal
-  cancelled: ['cancelled'], // terminal
+  draft:     ['draft', 'active', 'cancelled'],
+  active:    ['active', 'completed', 'cancelled'],
+  completed: ['completed'],
+  cancelled: ['cancelled'],
 };
 
 export default function EditProjectPage() {
   const params = useParams();
   const router = useRouter();
   const projectId = params.id as string;
-  
+
   const { data: project, isLoading } = useProject(projectId);
   const updateProject = useUpdateProject();
   const [apiError, setApiError] = useState<string | null>(null);
-  
-  const {
-    register,
-    handleSubmit,
-    reset,
-    watch,
-    setValue,
-    formState: { errors, isDirty },
-  } = useForm<ProjectForm>({
-    resolver: zodResolver(getProjectSchema(project?.status || 'draft')),
-    defaultValues: {
-      name: '',
-      description: '',
-      status: 'draft',
-      budget: '',
-      startDate: '',
-      endDate: '',
-    },
+
+  const { register, handleSubmit, reset, watch, setValue, formState: { errors, isDirty } } = useForm<ProjectForm>({
+    resolver: zodResolver(getSchema(project?.status || 'draft')),
+    defaultValues: { name: '', description: '', status: 'draft', budget: '', startDate: '', endDate: '' },
   });
 
   const currentStatus = watch('status');
   const startDate = watch('startDate');
   const endDate = watch('endDate');
 
-  // Pré-remplir le formulaire
   useEffect(() => {
     if (project && !isLoading) {
       reset({
@@ -107,277 +463,131 @@ export default function EditProjectPage() {
     }
   }, [project, isLoading, reset]);
 
-  // Auto-ajuster la date de fin si nécessaire
   useEffect(() => {
     if (startDate && endDate && endDate <= startDate) {
-      const newEndDate = format(addDays(new Date(startDate), 1), 'yyyy-MM-dd');
-      setValue('endDate', newEndDate);
+      setValue('endDate', format(addDays(new Date(startDate), 1), 'yyyy-MM-dd'));
     }
   }, [startDate, endDate, setValue]);
 
-  // Calculer les statuts disponibles
   const availableStatuses = project ? statusTransitions[project.status] || [project.status] : [];
+  const isTerminal = ['completed', 'cancelled'].includes(project?.status || '');
+  const isValidTransition = (s: string) => !project || s === project.status || availableStatuses.includes(s);
 
-  // Vérifier si une transition est valide
-  const isValidTransition = (newStatus: string) => {
-    if (!project) return false;
-    if (newStatus === project.status) return true;
-    return availableStatuses.includes(newStatus);
+  const getMinStartDate = () => {
+    if (!project?.startDate) return format(new Date(), 'yyyy-MM-dd');
+    const ps = parseISO(project.startDate);
+    return isBefore(ps, startOfDay(new Date())) ? format(ps, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd');
   };
 
   const onSubmit = (data: ProjectForm) => {
     setApiError(null);
-
-    // Vérifier la transition côté client
-    if (!isValidTransition(data.status)) {
-      setApiError(`Transition invalide: ${project?.status} → ${data.status}`);
-      return;
-    }
-
+    if (!isValidTransition(data.status)) { setApiError(`Transition invalide`); return; }
     updateProject.mutate(
-      {
-        id: projectId,
-        data: {
-          ...data,
-          budget: data.budget ? parseFloat(data.budget) : undefined,
-        },
-      },
-      {
-        onSuccess: () => {
-          router.push(`/projects/${projectId}`);
-        },
-        onError: (error) => {
-          setApiError(error.message);
-        },
-      }
+      { id: projectId, data: { ...data, budget: data.budget ? parseFloat(data.budget) : undefined } },
+      { onSuccess: () => router.push(`/projects/${projectId}`), onError: e => setApiError(e.message) }
     );
   };
 
-  // Calculer la date min pour le début
-  const getMinStartDate = () => {
-    if (!project?.startDate) return format(new Date(), 'yyyy-MM-dd');
-    const projectStart = parseISO(project.startDate);
-    const today = startOfDay(new Date());
-    // Si le projet a déjà commencé, on ne peut pas reculer
-    if (isBefore(projectStart, today)) {
-      return format(projectStart, 'yyyy-MM-dd');
-    }
-    return format(today, 'yyyy-MM-dd');
-  };
+  if (isLoading) return (
+    <div className="space-y-4 animate-pulse max-w-2xl">
+      <div className="h-8 w-48 bg-gray-200 dark:bg-gray-800 rounded-xl" />
+      <div className="h-96 bg-gray-200 dark:bg-gray-800 rounded-2xl" />
+    </div>
+  );
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-pulse">Chargement...</div>
-      </div>
-    );
-  }
-
-  if (!project) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-gray-500">Projet non trouvé</p>
-        <Link href="/projects" className="text-primary hover:underline mt-2 inline-block">
-          Retour aux projets
-        </Link>
-      </div>
-    );
-  }
-
-  const isTerminal = ['completed', 'cancelled'].includes(project.status);
-  const currentStatusConfig = statusOptions.find(s => s.value === project.status);
+  if (!project) return (
+    <div className="text-center py-16 text-gray-500 dark:text-gray-400">
+      Projet non trouvé — <Link href="/projects" className="text-indigo-500 hover:underline">Retour</Link>
+    </div>
+  );
 
   return (
     <div className="max-w-2xl">
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
-        <Link
-          href={`/projects/${projectId}`}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
-        >
+      <div className="flex items-center gap-3 mb-6">
+        <Link href={`/projects/${projectId}`}
+          className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors">
           <ArrowLeft className="w-4 h-4" />
-          Retour
         </Link>
-      </div>
-
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Modifier le projet</h1>
-        <div className="flex items-center gap-2 mt-2">
-          <span className="text-gray-500">Statut actuel:</span>
-          <span className="px-2 py-1 bg-gray-100 rounded text-sm font-medium">
-            {currentStatusConfig?.label}
-          </span>
+        <div>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Modifier le projet</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{project.name}</p>
         </div>
       </div>
 
-      {/* Warning si terminal */}
       {isTerminal && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 flex items-start gap-3">
-          <Info className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="font-medium text-amber-800">Projet {project.status === 'completed' ? 'terminé' : 'annulé'}</p>
-            <p className="text-sm text-amber-700">
-              Ce projet est en statut terminal. Seules les informations de base peuvent être modifiées.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Erreur API */}
-      {apiError && (
-        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-6 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="font-medium">Erreur</p>
-            <p className="text-sm">{apiError}</p>
-          </div>
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 bg-white rounded-xl border border-gray-200 p-6">
-        
-        {/* Nom */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Nom du projet *
-          </label>
-          <input
-            {...register('name')}
-            disabled={isTerminal}
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none disabled:bg-gray-50 disabled:text-gray-500"
-          />
-          {errors.name && (
-            <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-              <AlertCircle className="w-4 h-4" />
-              {errors.name.message}
-            </p>
-          )}
-        </div>
-
-        {/* Description */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Description
-          </label>
-          <textarea
-            {...register('description')}
-            rows={4}
-            disabled={isTerminal}
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none resize-none disabled:bg-gray-50 disabled:text-gray-500"
-          />
-        </div>
-
-        {/* Statut avec transitions validées */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Statut
-          </label>
-          <select
-            {...register('status')}
-            disabled={isTerminal}
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none disabled:bg-gray-50"
-          >
-            {statusOptions.map((option) => {
-              const isAvailable = availableStatuses.includes(option.value);
-              const isCurrent = project.status === option.value;
-              return (
-                <option 
-                  key={option.value} 
-                  value={option.value}
-                  disabled={!isAvailable}
-                >
-                  {option.label} {isCurrent ? '(actuel)' : ''} {!isAvailable && '— indisponible'}
-                </option>
-              );
-            })}
-          </select>
-          <p className="text-sm text-gray-500 mt-1">
-            {currentStatus === project.status 
-              ? 'Aucun changement de statut' 
-              : `Transition: ${currentStatusConfig?.label} → ${statusOptions.find(s => s.value === currentStatus)?.label}`}
+        <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4 mb-5 flex items-start gap-3 text-sm">
+          <Info className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+          <p className="text-amber-700 dark:text-amber-400">
+            Projet {project.status === 'completed' ? 'terminé' : 'annulé'} — seules les informations de base sont modifiables.
           </p>
+        </div>
+      )}
+
+      {apiError && (
+        <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 p-4 rounded-xl mb-5 flex items-start gap-2 text-sm">
+          <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+          {apiError}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
+        <div>
+          <label className="label-base">Nom du projet *</label>
+          <input {...register('name')} disabled={isTerminal} className="input-base disabled:opacity-60" />
+          {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name.message}</p>}
+        </div>
+
+        <div>
+          <label className="label-base">Description</label>
+          <textarea {...register('description')} rows={3} disabled={isTerminal} className="input-base resize-none disabled:opacity-60" />
+        </div>
+
+        <div>
+          <label className="label-base">Statut</label>
+          <select {...register('status')} disabled={isTerminal} className="input-base disabled:opacity-60">
+            {statusOptions.map(opt => (
+              <option key={opt.value} value={opt.value} disabled={!availableStatuses.includes(opt.value)}>
+                {opt.label} {project.status === opt.value ? '(actuel)' : ''} {!availableStatuses.includes(opt.value) ? '— indisponible' : ''}
+              </option>
+            ))}
+          </select>
           {!isValidTransition(currentStatus) && currentStatus !== project.status && (
-            <p className="mt-1 text-sm text-red-600">
-              Cette transition n'est pas autorisée
-            </p>
+            <p className="mt-1 text-xs text-red-500">Transition non autorisée</p>
           )}
         </div>
 
-        {/* Budget */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Budget (€)
-          </label>
-          <input
-            type="number"
-            {...register('budget')}
-            disabled={isTerminal}
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none disabled:bg-gray-50 disabled:text-gray-500"
-          />
+          <label className="label-base">Budget (€)</label>
+          <input type="number" {...register('budget')} disabled={isTerminal} className="input-base disabled:opacity-60" placeholder="50000" />
         </div>
 
-        {/* Dates */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              Date de début
-              {currentStatus === 'active' && <span className="text-red-500">*</span>}
-            </label>
-            <input
-              type="date"
-              min={getMinStartDate()}
-              {...register('startDate')}
+            <label className="label-base flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> Date de début</label>
+            <input type="date" min={getMinStartDate()} {...register('startDate')}
               disabled={isTerminal || (project.status === 'active' && !!project.startDate)}
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none disabled:bg-gray-50 disabled:text-gray-500"
-            />
-            {errors.startDate && (
-              <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" />
-                {errors.startDate.message}
-              </p>
-            )}
+              className="input-base disabled:opacity-60" />
+            {errors.startDate && <p className="mt-1 text-xs text-red-500">{errors.startDate.message}</p>}
             {project.status === 'active' && project.startDate && (
-              <p className="text-xs text-gray-500 mt-1">
-                Déjà démarré le {format(parseISO(project.startDate), 'dd/MM/yyyy', { locale: fr })}
-              </p>
+              <p className="text-xs text-gray-400 mt-1">Démarré le {format(parseISO(project.startDate), 'dd/MM/yyyy', { locale: fr })}</p>
             )}
           </div>
-
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              Date de fin
-            </label>
-            <input
-              type="date"
-              min={startDate ? format(addDays(new Date(startDate), 1), 'yyyy-MM-dd') : getMinStartDate()}
-              {...register('endDate')}
-              disabled={isTerminal}
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none disabled:bg-gray-50 disabled:text-gray-500"
-            />
-            {errors.endDate && (
-              <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" />
-                {errors.endDate.message}
-              </p>
-            )}
+            <label className="label-base flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> Date de fin</label>
+            <input type="date" min={startDate ? format(addDays(new Date(startDate), 1), 'yyyy-MM-dd') : getMinStartDate()}
+              {...register('endDate')} disabled={isTerminal} className="input-base disabled:opacity-60" />
+            {errors.endDate && <p className="mt-1 text-xs text-red-500">{errors.endDate.message}</p>}
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-4 pt-4 border-t border-gray-100">
-          <button
-            type="submit"
+        <div className="flex gap-3 pt-2 border-t border-gray-100 dark:border-gray-800">
+          <button type="submit"
             disabled={!isDirty || updateProject.isPending || !isValidTransition(currentStatus)}
-            className="flex-1 bg-primary hover:bg-primary-dark text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {updateProject.isPending ? 'Enregistrement...' : 'Enregistrer les modifications'}
+            className="flex-1 bg-linear-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold py-3 rounded-xl transition-all disabled:opacity-50 text-sm shadow-lg shadow-indigo-200 dark:shadow-indigo-900">
+            {updateProject.isPending ? 'Enregistrement...' : 'Enregistrer'}
           </button>
-          <Link
-            href={`/projects/${projectId}`}
-            className="px-6 py-3 text-gray-600 hover:text-gray-900"
-          >
+          <Link href={`/projects/${projectId}`}
+            className="px-5 py-3 text-sm text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
             Annuler
           </Link>
         </div>

@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 export type IndicatorFrequency = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly' | 'free';
 
 export interface Indicator {
+  frequency: IndicatorFrequency;
   id: string;
   name: string;
   description: string | null;
